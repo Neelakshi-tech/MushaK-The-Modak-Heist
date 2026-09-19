@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
    MUSHAAK — Shadow of Ganesha
-   Main game logic — Sound-mapped version
+   Main game logic — Intro music fixed version
    ═══════════════════════════════════════════════════════════ */
 
 (() => {
@@ -61,7 +61,6 @@
     mushakCaughtLegacy:'images/mushak-caught.png', bgLegacy:'images/bg.png'
   };
   const SOUNDS = {
-    // Your exact files
     bgmusic:      'sounds/bgmusic.mp3',
     click:        'sounds/click.mp3',
     collect:      'sounds/collect.mp3',
@@ -71,7 +70,6 @@
     poweup:       'sounds/poweup.mp3',
     safe:         'sounds/safe.mp3',
     start:        'sounds/start.mp3',
-    // Story narration (kept from earlier)
     story1:       'sounds/story1.mp3',
     story2:       'sounds/story2.mp3',
     story3:       'sounds/story3.mp3',
@@ -86,7 +84,10 @@
   const loadSound = (k, src) => new Promise(r => {
     const a = new Audio(); a.preload='auto';
     a.oncanplaythrough = () => { loadedSounds[k]=a; r(); };
-    a.onerror = () => { loadedSounds[k]=null; r(); };
+    a.onerror = () => {
+      console.warn('❌ Sound failed to load:', src);
+      loadedSounds[k]=null; r();
+    };
     a.src = src;
     setTimeout(() => { if (!loadedSounds[k]) { loadedSounds[k]=null; r(); } }, 2500);
   });
@@ -95,6 +96,8 @@
     for (const k in IMAGES) p.push(loadImage(k, IMAGES[k]));
     for (const k in SOUNDS) p.push(loadSound(k, SOUNDS[k]));
     await Promise.all(p);
+    console.log('🎵 Loaded sounds:', Object.keys(loadedSounds).filter(k => loadedSounds[k]));
+    console.log('❌ Missing sounds:', Object.keys(loadedSounds).filter(k => !loadedSounds[k]));
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -102,6 +105,7 @@
   // ═══════════════════════════════════════════════════════════
   let bgMusic = null, introMusic = null;
   let audioCtx = null, audioPrimed = false;
+  let introMusicUnlockPending = false; // ← if autoplay was blocked, queue it
 
   function initAudio() {
     if (!audioCtx) {
@@ -109,6 +113,8 @@
     }
     if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
   }
+
+  // Unlock ALL audio on the first user interaction
   function primeAudio() {
     if (audioPrimed) return;
     audioPrimed = true;
@@ -122,18 +128,21 @@
         source.start(0);
       }
     } catch(e) {}
+
+    // ▶ If intro music was queued while blocked, play it now
+    if (introMusicUnlockPending) {
+      introMusicUnlockPending = false;
+      tryPlayIntroMusic();
+    }
   }
+
   ['pointerdown', 'touchstart', 'click', 'keydown'].forEach(evt => {
     window.addEventListener(evt, primeAudio, { once: false, passive: true });
   });
 
   // ═══════════════════════════════════════════════════════════
   //  SOUND PLAYERS
-  //  Every function below plays a specific sound. No fallbacks —
-  //  it just plays your file, and logs a warning if not loaded.
   // ═══════════════════════════════════════════════════════════
-
-  // CLICK — plays for every button/tap
   function sfxClick() {
     if (!settings.sfx) return;
     const s = loadedSounds.click;
@@ -145,7 +154,6 @@
     } catch(e) {}
   }
 
-  // COLLECT — when you collect a modak
   function sfxCollect() {
     if (!settings.sfx) return;
     const s = loadedSounds.collect;
@@ -157,7 +165,6 @@
     } catch(e) {}
   }
 
-  // GOLDEN — when you collect a golden modak
   function sfxGolden() {
     if (!settings.sfx) return;
     const s = loadedSounds.golden;
@@ -169,7 +176,6 @@
     } catch(e) {}
   }
 
-  // SAFE — when you reach the safe zone
   function sfxSafe() {
     if (!settings.sfx) return;
     const s = loadedSounds.safe;
@@ -181,7 +187,6 @@
     } catch(e) {}
   }
 
-  // LEVEL COMPLETE — when you clear a level
   function sfxLevelComplete() {
     if (!settings.sfx) return;
     const s = loadedSounds.levelcomplete;
@@ -193,7 +198,6 @@
     } catch(e) {}
   }
 
-  // POWER-UP — when you activate your superpower OR collect a power-up item
   function sfxPowerup() {
     if (!settings.sfx) return;
     const s = loadedSounds.poweup;
@@ -205,7 +209,6 @@
     } catch(e) {}
   }
 
-  // START — plays when the actual game starts
   function sfxStart() {
     if (!settings.sfx) return;
     const s = loadedSounds.start;
@@ -245,26 +248,49 @@
     if (bgMusic) { try { bgMusic.pause(); bgMusic.currentTime = 0; } catch(e){} }
   }
 
-  // Intro music — plays during title intro (Mushak animation with Ganesha shadow)
-  function startIntroMusic() {
-    if (!settings.music) return;
+  // ─────────────────────────────────────────────────────────
+  //  INTRO MUSIC — plays during title animation
+  //  Handles browser autoplay blocking gracefully
+  // ─────────────────────────────────────────────────────────
+  function tryPlayIntroMusic() {
+    if (!settings.music) return false;
     const m = loadedSounds.intromusic;
     if (!m) {
-      console.warn('intromusic.mp3 not loaded');
-      return;
+      console.warn('❌ intromusic.mp3 not loaded — check: sounds/intromusic.mp3');
+      return false;
     }
     if (!introMusic) {
       introMusic = m.cloneNode();
       introMusic.loop = true;
     }
     introMusic.volume = masterVolume(0.55);
-    introMusic.currentTime = 0;
-    introMusic.play().catch(()=>{});
+    try {
+      const promise = introMusic.play();
+      if (promise && typeof promise.then === 'function') {
+        promise.then(() => {
+          console.log('✅ intromusic playing');
+        }).catch(() => {
+          console.warn('🔇 intromusic autoplay blocked — will play on next tap');
+          introMusicUnlockPending = true;
+        });
+      }
+      return true;
+    } catch(e) {
+      console.warn('🔇 intromusic play() failed:', e);
+      introMusicUnlockPending = true;
+      return false;
+    }
   }
+
+  function startIntroMusic() {
+    introMusicUnlockPending = false;
+    tryPlayIntroMusic();
+  }
+
   function stopIntroMusic() {
     if (!introMusic) return;
+    introMusicUnlockPending = false;
     try {
-      // Smooth fade-out over ~300ms then stop
       const startVol = introMusic.volume;
       let fade = 0;
       const interval = setInterval(() => {
@@ -1004,7 +1030,7 @@
         addPopupShort(m.x, m.y-20, '+' + pts + (comboMult>1 ? ' x'+comboMult : ''),
                  midasActive ? '#a855f7' : '#ffd56b', 22);
         addRipple(m.x, m.y, '#fcd34d', 50);
-        sfxCollect(); // ← COLLECT SOUND
+        sfxCollect();
         setEmote(pick(['😋','😇','🤤','😊']), 40);
         scoreBox.classList.remove('pop'); void scoreBox.offsetWidth; scoreBox.classList.add('pop');
         if (comboCount >= 6 && comboCount >= comboMilestone + 6) {
@@ -1022,7 +1048,7 @@
       addParticles(goldenModak.x, goldenModak.y, '#ffd56b', 24, 6);
       addPopup(goldenModak.x, goldenModak.y-30, `+${pts} GOLDEN!`, '#dc2626', 28);
       addRipple(goldenModak.x, goldenModak.y, '#ffd56b', 90);
-      sfxGolden(); // ← GOLDEN SOUND
+      sfxGolden();
       setEmote('🥳', 60); shake(6);
       playCinematic('🌟', 'GOLDEN MODAK!', '+' + pts + ' points', 1300);
     }
@@ -1034,7 +1060,7 @@
         addParticles(f.x, f.y, '#f472b6', 20, 5);
         addPopup(f.x, f.y-30, '🌺 Ashirwad! +100', '#f472b6', 24);
         addRipple(f.x, f.y, '#f472b6', 90);
-        sfxGolden(); // blessing uses golden sound (sparkle)
+        sfxGolden();
         setEmote('🙏', 70); shake(4);
         playCinematic('🌺', 'ASHIRWAD!', 'Divine blessing received', 1400);
       }
@@ -1043,7 +1069,7 @@
       if (p.collected) continue;
       if (dist(mushak.x, mushak.y, p.x, p.y) < 34) {
         p.collected = true;
-        sfxPowerup(); // ← POWER-UP SOUND
+        sfxPowerup();
         addRipple(p.x, p.y, '#a855f7', 70);
         if (p.type === 'speed') { speedBoostTimer = 300; addPopup(p.x, p.y-25, '☕ SPEED!', '#38bdf8', 22); }
         else if (p.type === 'shield') {
@@ -1081,9 +1107,7 @@
     localStorage.setItem('mushakStars', String(totalStars));
     suspicion = Math.max(0, suspicion - 35);
     comboCount = 0;
-    // SAFE ZONE SOUND — plays when you escape to safe zone
     sfxSafe();
-    // LEVEL COMPLETE SOUND — plays shortly after
     setTimeout(() => { sfxLevelComplete(); }, 350);
     addRipple(mushak.x, mushak.y, '#10b981', 100);
     shake(4);
@@ -1185,7 +1209,7 @@
       cinematicTitle = 'LAKSHMI KRIPA'; cinematicSub = 'Double points flow freely';
       playPowerFlash('rgba(168,85,247,0.75)');
     }
-    sfxPowerup(); // ← POWER-UP SOUND when activating superpower
+    sfxPowerup();
     playCinematic(cinematicIcon, cinematicTitle, cinematicSub, 1400);
     setEmote('😊', 60);
     shake(6);
@@ -2013,7 +2037,7 @@
   tutSlidePrevBtn.addEventListener('click', () => { sfxClick(); showSlide(Math.max(currentSlide - 1, 0)); });
 
   // ═══════════════════════════════════════════════════════════
-  //  HOME BUTTONS — all play click.mp3
+  //  HOME BUTTONS
   // ═══════════════════════════════════════════════════════════
   $('homePlayBtn').addEventListener('click', () => {
     try { initAudio(); } catch(e){}
@@ -2149,7 +2173,7 @@
   });
 
   // ═══════════════════════════════════════════════════════════
-  //  GAME FLOW BUTTONS — all play click.mp3
+  //  GAME FLOW BUTTONS
   // ═══════════════════════════════════════════════════════════
   $('charBackBtn').addEventListener('click', () => { sfxClick(); showHomeScreen(); });
   $('charNextBtn').addEventListener('click', () => { sfxClick(); showThemeScreen(); });
@@ -2175,14 +2199,14 @@
     localStorage.setItem('mushakPlayerName', playerName);
 
     try { initAudio(); } catch(e){}
-    sfxStart(); // ← START SOUND
+    sfxStart();
     hideAllOverlays();
     appShell.classList.remove('hidden');
     topCornerMenu.classList.remove('hidden');
     gameActive = false; paused = false;
     totalPrayersUsed = 0; totalModaksCollected = 0; totalTimeSpent = 0;
     resetGame(0);
-    startBgMusic(); // ← BACKGROUND MUSIC
+    startBgMusic();
     playCinematic(LEVELS[0].icon, 'LEVEL 1', LEVELS[0].name, 1800);
     setTimeout(() => {
       gameActive = true; paused = false;
@@ -2305,15 +2329,16 @@
   });
 
   // ═══════════════════════════════════════════════════════════
-  //  TITLE INTRO — plays intromusic.mp3
+  //  TITLE INTRO — with intro music handling
   // ═══════════════════════════════════════════════════════════
   let introFinished = false;
   let introTimer = null;
+
   function finishIntro() {
     if (introFinished) return;
     introFinished = true;
     clearTimeout(introTimer);
-    stopIntroMusic(); // fade out intromusic.mp3
+    stopIntroMusic();
     introOverlay.style.transition = 'opacity 0.6s ease';
     introOverlay.style.opacity = '0';
     setTimeout(() => {
@@ -2325,11 +2350,13 @@
     window.removeEventListener('pointerdown', skipIntroHandler);
     window.removeEventListener('touchstart', skipIntroHandler);
   }
+
   function skipIntroHandler(e) {
     if (e && e.target && e.target.closest('button, a, .btn, .icon-btn')) return;
     primeAudio();
     finishIntro();
   }
+
   function startIntro() {
     hideAllOverlays();
     appShell.classList.add('hidden');
@@ -2342,12 +2369,12 @@
     window.addEventListener('pointerdown', skipIntroHandler);
     window.addEventListener('touchstart', skipIntroHandler, { passive: true });
     initAudio();
-    // ▶ Play intromusic.mp3 IMMEDIATELY as the intro animation begins
+    // ▶ Try to play intro music — if blocked, it queues for next user gesture
     startIntroMusic();
   }
 
   // ═══════════════════════════════════════════════════════════
-  //  STORY (uses story1-5.mp3 for narration; no music here)
+  //  STORY
   // ═══════════════════════════════════════════════════════════
   let storySceneIndex = 0;
   let storyTimer = null;
