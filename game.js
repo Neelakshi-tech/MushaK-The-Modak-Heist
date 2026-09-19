@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
    MUSHAAK — Shadow of Ganesha
-   Main game logic
+   Main game logic — Sound-mapped version
    ═══════════════════════════════════════════════════════════ */
 
 (() => {
@@ -61,11 +61,22 @@
     mushakCaughtLegacy:'images/mushak-caught.png', bgLegacy:'images/bg.png'
   };
   const SOUNDS = {
-    bgmusic:'sounds/bgmusic.mp3', collect:'sounds/collect.mp3', golden:'sounds/golden.mp3',
-    pray:'sounds/pray.mp3', alert:'sounds/alert.mp3',
-    powerup:'sounds/powerup.mp3', gameover:'sounds/gameover.mp3', start:'sounds/start.mp3',
-    story1:'sounds/story1.mp3', story2:'sounds/story2.mp3', story3:'sounds/story3.mp3',
-    story4:'sounds/story4.mp3', story5:'sounds/story5.mp3'
+    // Your exact files
+    bgmusic:      'sounds/bgmusic.mp3',
+    click:        'sounds/click.mp3',
+    collect:      'sounds/collect.mp3',
+    golden:       'sounds/golden.mp3',
+    intromusic:   'sounds/intromusic.mp3',
+    levelcomplete:'sounds/levelcomplete.mp3',
+    poweup:       'sounds/poweup.mp3',
+    safe:         'sounds/safe.mp3',
+    start:        'sounds/start.mp3',
+    // Story narration (kept from earlier)
+    story1:       'sounds/story1.mp3',
+    story2:       'sounds/story2.mp3',
+    story3:       'sounds/story3.mp3',
+    story4:       'sounds/story4.mp3',
+    story5:       'sounds/story5.mp3'
   };
   const loadedImages = {}, loadedSounds = {};
   const loadImage = (k, src) => new Promise(r => {
@@ -87,9 +98,10 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  //  AUDIO
+  //  AUDIO SYSTEM
   // ═══════════════════════════════════════════════════════════
-  let bgMusic = null, audioCtx = null, audioPrimed = false;
+  let bgMusic = null, introMusic = null;
+  let audioCtx = null, audioPrimed = false;
 
   function initAudio() {
     if (!audioCtx) {
@@ -115,38 +127,157 @@
     window.addEventListener(evt, primeAudio, { once: false, passive: true });
   });
 
-  function playSound(key, vol=0.7) {
+  // ═══════════════════════════════════════════════════════════
+  //  SOUND PLAYERS
+  //  Every function below plays a specific sound. No fallbacks —
+  //  it just plays your file, and logs a warning if not loaded.
+  // ═══════════════════════════════════════════════════════════
+
+  // CLICK — plays for every button/tap
+  function sfxClick() {
     if (!settings.sfx) return;
-    const v = masterVolume(vol);
-    const s = loadedSounds[key];
-    if (s) { try { const c = s.cloneNode(); c.volume = v; c.play().catch(()=>{}); return; } catch(e){} }
-    fb(key, v);
+    const s = loadedSounds.click;
+    if (!s) return;
+    try {
+      const c = s.cloneNode();
+      c.volume = masterVolume(0.55);
+      c.play().catch(()=>{});
+    } catch(e) {}
   }
-  function fb(key, vol=0.08) {
-    if (!audioCtx) return;
-    const m = { collect:[880,.09,'sine'], golden:[1320,.15,'triangle'], pray:[523,.2,'sine'],
-      alert:[220,.15,'sine'], powerup:[1568,.12,'sine'],
-      gameover:[220,.5,'sine'], start:[660,.2,'sine'] };
-    const [f,d,t] = m[key] || [440,.1,'sine'];
-    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type = t; o.frequency.value = f;
-    g.gain.setValueAtTime(vol, audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + d);
-    o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime + d + .02);
+
+  // COLLECT — when you collect a modak
+  function sfxCollect() {
+    if (!settings.sfx) return;
+    const s = loadedSounds.collect;
+    if (!s) return;
+    try {
+      const c = s.cloneNode();
+      c.volume = masterVolume(0.7);
+      c.play().catch(()=>{});
+    } catch(e) {}
   }
+
+  // GOLDEN — when you collect a golden modak
+  function sfxGolden() {
+    if (!settings.sfx) return;
+    const s = loadedSounds.golden;
+    if (!s) return;
+    try {
+      const c = s.cloneNode();
+      c.volume = masterVolume(0.85);
+      c.play().catch(()=>{});
+    } catch(e) {}
+  }
+
+  // SAFE — when you reach the safe zone
+  function sfxSafe() {
+    if (!settings.sfx) return;
+    const s = loadedSounds.safe;
+    if (!s) return;
+    try {
+      const c = s.cloneNode();
+      c.volume = masterVolume(0.8);
+      c.play().catch(()=>{});
+    } catch(e) {}
+  }
+
+  // LEVEL COMPLETE — when you clear a level
+  function sfxLevelComplete() {
+    if (!settings.sfx) return;
+    const s = loadedSounds.levelcomplete;
+    if (!s) return;
+    try {
+      const c = s.cloneNode();
+      c.volume = masterVolume(0.85);
+      c.play().catch(()=>{});
+    } catch(e) {}
+  }
+
+  // POWER-UP — when you activate your superpower OR collect a power-up item
+  function sfxPowerup() {
+    if (!settings.sfx) return;
+    const s = loadedSounds.poweup;
+    if (!s) return;
+    try {
+      const c = s.cloneNode();
+      c.volume = masterVolume(0.85);
+      c.play().catch(()=>{});
+    } catch(e) {}
+  }
+
+  // START — plays when the actual game starts
+  function sfxStart() {
+    if (!settings.sfx) return;
+    const s = loadedSounds.start;
+    if (!s) return;
+    try {
+      const c = s.cloneNode();
+      c.volume = masterVolume(0.8);
+      c.play().catch(()=>{});
+    } catch(e) {}
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  //  MUSIC LAYERS
+  // ═══════════════════════════════════════════════════════════
+
+  // Background gameplay music
   function startBgMusic() {
     if (!settings.music) return;
     const m = loadedSounds.bgmusic;
-    if (m) {
-      if (!bgMusic) { bgMusic = m.cloneNode(); bgMusic.loop = true; }
+    if (!m) return;
+    if (!bgMusic) {
+      bgMusic = m.cloneNode();
+      bgMusic.loop = true;
+    }
+    bgMusic.volume = masterVolume(0.28);
+    bgMusic.play().catch(()=>{});
+  }
+  function pauseBgMusic() { if (bgMusic) { try { bgMusic.pause(); } catch(e){} } }
+  function resumeBgMusic() {
+    if (!settings.music) return;
+    if (bgMusic) {
       bgMusic.volume = masterVolume(0.28);
       bgMusic.play().catch(()=>{});
     }
   }
-  function pauseBgMusic() { if (bgMusic) bgMusic.pause(); }
-  function resumeBgMusic() {
+  function stopBgMusic() {
+    if (bgMusic) { try { bgMusic.pause(); bgMusic.currentTime = 0; } catch(e){} }
+  }
+
+  // Intro music — plays during title intro (Mushak animation with Ganesha shadow)
+  function startIntroMusic() {
     if (!settings.music) return;
-    if (bgMusic) { bgMusic.volume = masterVolume(0.28); bgMusic.play().catch(()=>{}); }
+    const m = loadedSounds.intromusic;
+    if (!m) {
+      console.warn('intromusic.mp3 not loaded');
+      return;
+    }
+    if (!introMusic) {
+      introMusic = m.cloneNode();
+      introMusic.loop = true;
+    }
+    introMusic.volume = masterVolume(0.55);
+    introMusic.currentTime = 0;
+    introMusic.play().catch(()=>{});
+  }
+  function stopIntroMusic() {
+    if (!introMusic) return;
+    try {
+      // Smooth fade-out over ~300ms then stop
+      const startVol = introMusic.volume;
+      let fade = 0;
+      const interval = setInterval(() => {
+        fade += 0.15;
+        if (fade >= 1) {
+          clearInterval(interval);
+          try { introMusic.pause(); introMusic.currentTime = 0; } catch(e){}
+          try { introMusic.volume = startVol; } catch(e){}
+          return;
+        }
+        try { introMusic.volume = Math.max(0, startVol * (1 - fade)); } catch(e){}
+      }, 45);
+    } catch(e) {}
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -286,7 +417,6 @@
       starColor:'rgba(200,220,255,0.9)', modakMult:0.7, ganeshMult:1.3, scoreMult:2.0, night:true }
   ];
 
-  // Progressive difficulty: time reduces, difficulty increases
   const LEVELS = [
     { name:'Home Sweet Home', icon:'🏠', timeLimit: 60, difficulty: 1.0 },
     { name:'Temple Courtyard', icon:'🛕', timeLimit: 55, difficulty: 1.15 },
@@ -777,7 +907,6 @@
         ganesh.lookDuration = 70 + Math.min(40, levelIndex * 8);
         ganesh.lookCooldown = Math.max(45, 110 - levelIndex * 12);
         ganesh.turnFlash = 15;
-        playSound('alert', 0.5);
       }
     }
     if (ganesh.turnFlash > 0) ganesh.turnFlash--;
@@ -846,7 +975,7 @@
       if (selectedChar.id === 'mota' && mushak.hits < 1) {
         mushak.hits++; suspicion = 30;
         addPopup(mushak.x, mushak.y-40, '🛡️ Divine Shield held!', '#10b981', 22);
-        shake(8); playSound('alert', 0.8);
+        shake(8);
       } else { gameOver(); return; }
     }
     if (comboTimer > 0) { comboTimer -= dt; if (comboTimer <= 0) comboCount = 0; }
@@ -875,7 +1004,7 @@
         addPopupShort(m.x, m.y-20, '+' + pts + (comboMult>1 ? ' x'+comboMult : ''),
                  midasActive ? '#a855f7' : '#ffd56b', 22);
         addRipple(m.x, m.y, '#fcd34d', 50);
-        playSound('collect', 0.6);
+        sfxCollect(); // ← COLLECT SOUND
         setEmote(pick(['😋','😇','🤤','😊']), 40);
         scoreBox.classList.remove('pop'); void scoreBox.offsetWidth; scoreBox.classList.add('pop');
         if (comboCount >= 6 && comboCount >= comboMilestone + 6) {
@@ -893,7 +1022,7 @@
       addParticles(goldenModak.x, goldenModak.y, '#ffd56b', 24, 6);
       addPopup(goldenModak.x, goldenModak.y-30, `+${pts} GOLDEN!`, '#dc2626', 28);
       addRipple(goldenModak.x, goldenModak.y, '#ffd56b', 90);
-      playSound('golden', 0.8);
+      sfxGolden(); // ← GOLDEN SOUND
       setEmote('🥳', 60); shake(6);
       playCinematic('🌟', 'GOLDEN MODAK!', '+' + pts + ' points', 1300);
     }
@@ -905,7 +1034,8 @@
         addParticles(f.x, f.y, '#f472b6', 20, 5);
         addPopup(f.x, f.y-30, '🌺 Ashirwad! +100', '#f472b6', 24);
         addRipple(f.x, f.y, '#f472b6', 90);
-        playSound('golden', 0.9); setEmote('🙏', 70); shake(4);
+        sfxGolden(); // blessing uses golden sound (sparkle)
+        setEmote('🙏', 70); shake(4);
         playCinematic('🌺', 'ASHIRWAD!', 'Divine blessing received', 1400);
       }
     }
@@ -913,7 +1043,7 @@
       if (p.collected) continue;
       if (dist(mushak.x, mushak.y, p.x, p.y) < 34) {
         p.collected = true;
-        playSound('powerup', 0.7);
+        sfxPowerup(); // ← POWER-UP SOUND
         addRipple(p.x, p.y, '#a855f7', 70);
         if (p.type === 'speed') { speedBoostTimer = 300; addPopup(p.x, p.y-25, '☕ SPEED!', '#38bdf8', 22); }
         else if (p.type === 'shield') {
@@ -936,7 +1066,7 @@
     if (!allDone) {
       addPopup(mushak.x, mushak.y-40, '🙏 Collect all first!', '#ffd56b', 22);
       setEmote('😅', 45);
-      if (newBatchNotice <= 0) { newBatchNotice = 90; shake(2); playSound('alert', 0.4); }
+      if (newBatchNotice <= 0) { newBatchNotice = 90; shake(2); }
       mushak.x = safeZone.x + safeZone.w + 20;
       return;
     }
@@ -951,8 +1081,10 @@
     localStorage.setItem('mushakStars', String(totalStars));
     suspicion = Math.max(0, suspicion - 35);
     comboCount = 0;
-    // Soft sound - use collect sound, not the harsh "safe" chime
-    playSound('collect', 0.9);
+    // SAFE ZONE SOUND — plays when you escape to safe zone
+    sfxSafe();
+    // LEVEL COMPLETE SOUND — plays shortly after
+    setTimeout(() => { sfxLevelComplete(); }, 350);
     addRipple(mushak.x, mushak.y, '#10b981', 100);
     shake(4);
     scoreBox.classList.remove('pop'); void scoreBox.offsetWidth; scoreBox.classList.add('pop');
@@ -993,7 +1125,8 @@
 
   function victory() {
     gameActive = false;
-    playSound('golden', 1); shake(10);
+    sfxLevelComplete();
+    shake(10);
     playCinematic('🏆', 'VICTORY!', 'All 5 levels mastered', 2200);
     setTimeout(() => {
       $('victoryScore').textContent = score;
@@ -1019,7 +1152,7 @@
     prayCooldown = 22;
     totalPrayersUsed++;
     setEmote('🙏', 70);
-    playSound('pray', 0.6);
+    sfxClick();
     addParticles(mushak.x, mushak.y, '#fde68a', 14);
     addRipple(mushak.x, mushak.y, '#fef3c7', 70);
     addPopup(mushak.x, mushak.y-40, '🙏 Om Gan Ganpataye!', '#a855f7', 22);
@@ -1052,7 +1185,7 @@
       cinematicTitle = 'LAKSHMI KRIPA'; cinematicSub = 'Double points flow freely';
       playPowerFlash('rgba(168,85,247,0.75)');
     }
-    playSound('powerup', 0.9);
+    sfxPowerup(); // ← POWER-UP SOUND when activating superpower
     playCinematic(cinematicIcon, cinematicTitle, cinematicSub, 1400);
     setEmote('😊', 60);
     shake(6);
@@ -1063,7 +1196,6 @@
   function timeOver() {
     if (!gameActive) return;
     gameActive = false;
-    playSound('gameover', 0.6);
     gamesPlayed++;
     localStorage.setItem('mushakPlays', String(gamesPlayed));
     timeOverScore.textContent = score;
@@ -1082,10 +1214,9 @@
   function gameOver() {
     if (!gameActive) return;
     gameActive = false;
-    playSound('gameover', 0.6);
-    shake(12);
     gamesPlayed++;
     localStorage.setItem('mushakPlays', String(gamesPlayed));
+    shake(12);
     if (score > highScore) {
       highScore = score;
       localStorage.setItem('mushakHighScore', highScore);
@@ -1831,7 +1962,7 @@
       selectedChar = c;
       document.querySelectorAll('.char-card').forEach(card => card.classList.toggle('selected', card.dataset.charId === c.id));
       updateCharPreview();
-      playSound('collect', 0.4);
+      sfxClick();
     });
     charGrid.appendChild(el);
   });
@@ -1851,7 +1982,7 @@
       selectedTheme = th;
       document.querySelectorAll('.theme-card').forEach(card => card.classList.toggle('selected', card.dataset.themeId === th.id));
       updateThemePreview();
-      playSound('collect', 0.4);
+      sfxClick();
     });
     themeGrid.appendChild(el);
   });
@@ -1877,38 +2008,38 @@
       startBtn.style.display = 'none';
     }
   }
-  dots.forEach(d => d.addEventListener('click', () => showSlide(+d.dataset.dot)));
-  tutSlideNextBtn.addEventListener('click', () => showSlide(Math.min(currentSlide + 1, slides.length - 1)));
-  tutSlidePrevBtn.addEventListener('click', () => showSlide(Math.max(currentSlide - 1, 0)));
+  dots.forEach(d => d.addEventListener('click', () => { sfxClick(); showSlide(+d.dataset.dot); }));
+  tutSlideNextBtn.addEventListener('click', () => { sfxClick(); showSlide(Math.min(currentSlide + 1, slides.length - 1)); });
+  tutSlidePrevBtn.addEventListener('click', () => { sfxClick(); showSlide(Math.max(currentSlide - 1, 0)); });
 
   // ═══════════════════════════════════════════════════════════
-  //  HOME BUTTONS
+  //  HOME BUTTONS — all play click.mp3
   // ═══════════════════════════════════════════════════════════
   $('homePlayBtn').addEventListener('click', () => {
     try { initAudio(); } catch(e){}
     try { requestFullscreen(); } catch(e){}
-    try { playSound('collect', 0.5); } catch(e){}
+    sfxClick();
     showCharScreen();
   });
   $('homeHowToBtn').addEventListener('click', () => {
-    try { playSound('collect', 0.5); } catch(e){}
+    sfxClick();
     hideAllOverlays();
     howToOverlay.classList.remove('hidden');
   });
   $('homeProfileBtn').addEventListener('click', () => {
-    try { playSound('collect', 0.5); } catch(e){}
+    sfxClick();
     hideAllOverlays();
     updateProfileStats();
     profileOverlay.classList.remove('hidden');
   });
   $('homeLeaderboardBtn').addEventListener('click', () => {
-    try { playSound('collect', 0.5); } catch(e){}
+    sfxClick();
     hideAllOverlays();
     renderLeaderboard('homeLeaderboardList');
     leaderboardOverlay.classList.remove('hidden');
   });
   $('homeSettingsBtn').addEventListener('click', () => {
-    try { playSound('collect', 0.5); } catch(e){}
+    sfxClick();
     hideAllOverlays();
     settingsOverlay.classList.remove('hidden');
     toggleSfx.classList.toggle('on', settings.sfx);
@@ -1918,24 +2049,23 @@
     volumeValue.textContent = settings.volume + '%';
   });
   $('homeExitBtn').addEventListener('click', () => {
+    sfxClick();
     if (!confirm('Exit Mushak? The game will close.')) return;
     try {
       window.close();
-      // Fallback: show a goodbye message
       setTimeout(() => {
         document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;font-size:1.5rem;color:#ffd56b;background:#1a0e2e;text-align:center;padding:20px;">🕉️ Thank you for playing Mushak!<br>You can close this tab now.</div>';
       }, 200);
     } catch(e) {}
   });
 
-  // How to Play
   $('closeHowToBtn').addEventListener('click', () => {
+    sfxClick();
     hideAllOverlays();
     if (gameActive && paused) pauseOverlay.classList.remove('hidden');
     else showHomeScreen();
   });
 
-  // Profile
   $('saveProfileBtn').addEventListener('click', () => {
     const name = profileNameInput.value.trim();
     if (!name) {
@@ -1946,19 +2076,17 @@
     }
     playerName = name.slice(0, 16);
     localStorage.setItem('mushakPlayerName', playerName);
-    playSound('golden', 0.7);
+    sfxGolden();
     vibrate(40);
     const btn = $('saveProfileBtn');
     btn.textContent = '✓ Saved!';
     setTimeout(() => { btn.textContent = '💾 Save'; }, 1500);
   });
-  $('closeProfileBtn').addEventListener('click', showHomeScreen);
+  $('closeProfileBtn').addEventListener('click', () => { sfxClick(); showHomeScreen(); });
+  $('closeLeaderboardBtn').addEventListener('click', () => { sfxClick(); showHomeScreen(); });
 
-  // Leaderboard
-  $('closeLeaderboardBtn').addEventListener('click', showHomeScreen);
-
-  // Settings
   $('closeSettingsBtn').addEventListener('click', () => {
+    sfxClick();
     hideAllOverlays();
     if (gameActive && paused) pauseOverlay.classList.remove('hidden');
     else showHomeScreen();
@@ -1967,25 +2095,28 @@
     const v = !settings.sfx;
     saveSetting('sfx', v);
     toggleSfx.classList.toggle('on', v);
-    playSound('collect', 0.5);
+    sfxClick();
   });
   toggleMusic.addEventListener('click', () => {
     const v = !settings.music;
     saveSetting('music', v);
     toggleMusic.classList.toggle('on', v);
     if (v) resumeBgMusic(); else pauseBgMusic();
+    sfxClick();
   });
   toggleVibrate.addEventListener('click', () => {
     const v = !settings.vibrate;
     saveSetting('vibrate', v);
     toggleVibrate.classList.toggle('on', v);
     vibrate(30);
+    sfxClick();
   });
   volumeSlider.addEventListener('input', () => {
     const v = parseInt(volumeSlider.value, 10);
     saveSetting('volume', v);
     volumeValue.textContent = v + '%';
     if (bgMusic) bgMusic.volume = masterVolume(0.28);
+    if (introMusic) introMusic.volume = masterVolume(0.55);
   });
 
   $('resetLeaderboardBtn').addEventListener('click', () => {
@@ -1996,7 +2127,7 @@
     renderLeaderboard('victoryLeaderboardList');
     renderLeaderboard('timeOverLeaderboard');
     renderLeaderboard('homeLeaderboardList');
-    playSound('collect', 0.6);
+    sfxClick();
     vibrate(40);
   });
 
@@ -2012,31 +2143,22 @@
     gamesPlayed = 0;
     highScoreDisplay.textContent = '0';
     updateTeachingsHUD();
-    playSound('collect', 0.6);
+    sfxClick();
     vibrate(40);
     setTimeout(() => location.reload(), 500);
   });
 
   // ═══════════════════════════════════════════════════════════
-  //  GAME FLOW BUTTONS
+  //  GAME FLOW BUTTONS — all play click.mp3
   // ═══════════════════════════════════════════════════════════
-  $('charBackBtn').addEventListener('click', showHomeScreen);
-  $('charNextBtn').addEventListener('click', () => {
-    try { playSound('collect', 0.5); } catch(e){}
-    showThemeScreen();
-  });
-  $('themeBackBtn').addEventListener('click', showCharScreen);
-  $('themeNextBtn').addEventListener('click', () => {
-    try { playSound('collect', 0.5); } catch(e){}
-    showTutorialScreen();
-    showSlide(0);
-  });
-  $('tutBackBtn').addEventListener('click', showThemeScreen);
-  startBtn.addEventListener('click', () => {
-    try { playSound('collect', 0.5); } catch(e){}
-    showNameScreen();
-  });
+  $('charBackBtn').addEventListener('click', () => { sfxClick(); showHomeScreen(); });
+  $('charNextBtn').addEventListener('click', () => { sfxClick(); showThemeScreen(); });
+  $('themeBackBtn').addEventListener('click', () => { sfxClick(); showCharScreen(); });
+  $('themeNextBtn').addEventListener('click', () => { sfxClick(); showTutorialScreen(); showSlide(0); });
+  $('tutBackBtn').addEventListener('click', () => { sfxClick(); showThemeScreen(); });
+  startBtn.addEventListener('click', () => { sfxClick(); showNameScreen(); });
   $('nameBackBtn').addEventListener('click', () => {
+    sfxClick();
     showTutorialScreen();
     showSlide(slides.length - 1);
   });
@@ -2053,14 +2175,14 @@
     localStorage.setItem('mushakPlayerName', playerName);
 
     try { initAudio(); } catch(e){}
-    try { playSound('start', 0.7); } catch(e){}
+    sfxStart(); // ← START SOUND
     hideAllOverlays();
     appShell.classList.remove('hidden');
     topCornerMenu.classList.remove('hidden');
     gameActive = false; paused = false;
     totalPrayersUsed = 0; totalModaksCollected = 0; totalTimeSpent = 0;
     resetGame(0);
-    startBgMusic();
+    startBgMusic(); // ← BACKGROUND MUSIC
     playCinematic(LEVELS[0].icon, 'LEVEL 1', LEVELS[0].name, 1800);
     setTimeout(() => {
       gameActive = true; paused = false;
@@ -2072,9 +2194,9 @@
   $('nameStartBtn').addEventListener('click', beginGame);
   startNameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') beginGame(); });
 
-  // Top corner in-game buttons
-  $('pauseBtn').addEventListener('click', togglePause);
+  $('pauseBtn').addEventListener('click', () => { sfxClick(); togglePause(); });
   $('quickHomeBtn').addEventListener('click', () => {
+    sfxClick();
     if (!gameActive) return;
     if (!confirm('Exit to Home? Current game progress will be lost.')) return;
     paused = false;
@@ -2083,14 +2205,15 @@
     showHomeScreen();
   });
 
-  // Pause overlay buttons
   $('resumeBtn').addEventListener('click', () => {
+    sfxClick();
     paused = false; pauseOverlay.classList.add('hidden');
     resumeBgMusic();
     if (useTouchControls) { dpad.classList.add('active'); touchActions.classList.add('active'); }
     updateUI();
   });
   $('restartFromPauseBtn').addEventListener('click', () => {
+    sfxClick();
     paused = false; pauseOverlay.classList.add('hidden');
     gameActive = true;
     totalPrayersUsed = 0; totalModaksCollected = 0; totalTimeSpent = 0;
@@ -2099,10 +2222,12 @@
     for (const k in keys) keys[k] = false;
   });
   $('pauseHowToBtn').addEventListener('click', () => {
+    sfxClick();
     pauseOverlay.classList.add('hidden');
     howToOverlay.classList.remove('hidden');
   });
   $('exitToHomeBtn').addEventListener('click', () => {
+    sfxClick();
     if (!confirm('Exit to Home? Current game progress will be lost.')) return;
     paused = false;
     gameActive = false;
@@ -2110,11 +2235,10 @@
     showHomeScreen();
   });
 
-  // Level complete
-  $('nextLevelBtn').addEventListener('click', nextLevel);
+  $('nextLevelBtn').addEventListener('click', () => { sfxClick(); nextLevel(); });
 
-  // Time over
   $('timeOverRetryBtn').addEventListener('click', () => {
+    sfxClick();
     timeOverOverlay.classList.add('hidden');
     appShell.classList.remove('hidden');
     topCornerMenu.classList.remove('hidden');
@@ -2124,10 +2248,10 @@
     if (useTouchControls) { dpad.classList.add('active'); touchActions.classList.add('active'); }
     for (const k in keys) keys[k] = false;
   });
-  $('timeOverMenuBtn').addEventListener('click', showHomeScreen);
+  $('timeOverMenuBtn').addEventListener('click', () => { sfxClick(); showHomeScreen(); });
 
-  // Game over
   $('tryAgainBtn').addEventListener('click', () => {
+    sfxClick();
     gameOverOverlay.classList.add('hidden');
     appShell.classList.remove('hidden');
     topCornerMenu.classList.remove('hidden');
@@ -2137,10 +2261,10 @@
     if (useTouchControls) { dpad.classList.add('active'); touchActions.classList.add('active'); }
     for (const k in keys) keys[k] = false;
   });
-  $('gameOverMenuBtn').addEventListener('click', showHomeScreen);
+  $('gameOverMenuBtn').addEventListener('click', () => { sfxClick(); showHomeScreen(); });
 
-  // Victory
   $('victoryAgainBtn').addEventListener('click', () => {
+    sfxClick();
     victoryOverlay.classList.add('hidden');
     appShell.classList.remove('hidden');
     topCornerMenu.classList.remove('hidden');
@@ -2150,11 +2274,10 @@
     if (useTouchControls) { dpad.classList.add('active'); touchActions.classList.add('active'); }
     for (const k in keys) keys[k] = false;
   });
-  $('victoryMenuBtn').addEventListener('click', showHomeScreen);
+  $('victoryMenuBtn').addEventListener('click', () => { sfxClick(); showHomeScreen(); });
 
-  // Side panel powers
-  lpPray.addEventListener('click', () => { initAudio(); prayAction(); });
-  lpPower.addEventListener('click', () => { initAudio(); activatePower(); });
+  lpPray.addEventListener('click', () => { initAudio(); sfxClick(); prayAction(); });
+  lpPower.addEventListener('click', () => { initAudio(); sfxClick(); activatePower(); });
 
   // ═══════════════════════════════════════════════════════════
   //  ORIENTATION & TOUCH
@@ -2182,7 +2305,7 @@
   });
 
   // ═══════════════════════════════════════════════════════════
-  //  TITLE INTRO
+  //  TITLE INTRO — plays intromusic.mp3
   // ═══════════════════════════════════════════════════════════
   let introFinished = false;
   let introTimer = null;
@@ -2190,6 +2313,7 @@
     if (introFinished) return;
     introFinished = true;
     clearTimeout(introTimer);
+    stopIntroMusic(); // fade out intromusic.mp3
     introOverlay.style.transition = 'opacity 0.6s ease';
     introOverlay.style.opacity = '0';
     setTimeout(() => {
@@ -2218,10 +2342,12 @@
     window.addEventListener('pointerdown', skipIntroHandler);
     window.addEventListener('touchstart', skipIntroHandler, { passive: true });
     initAudio();
+    // ▶ Play intromusic.mp3 IMMEDIATELY as the intro animation begins
+    startIntroMusic();
   }
 
   // ═══════════════════════════════════════════════════════════
-  //  STORY
+  //  STORY (uses story1-5.mp3 for narration; no music here)
   // ═══════════════════════════════════════════════════════════
   let storySceneIndex = 0;
   let storyTimer = null;
@@ -2308,7 +2434,7 @@
 
   const storySkipBtn = $('storySkipBtn');
   if (storySkipBtn) {
-    storySkipBtn.addEventListener('click', (e) => { e.stopPropagation(); finishStory(); });
+    storySkipBtn.addEventListener('click', (e) => { e.stopPropagation(); sfxClick(); finishStory(); });
     storySkipBtn.addEventListener('touchend', (e) => { e.stopPropagation(); e.preventDefault(); finishStory(); });
   }
 
