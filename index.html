@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1a0e2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="Mushak — Shadow of Ganesha: A festive stealth arcade game for Ganesh Chaturthi!">
+<title>🐭 Mushak — Shadow of Ganesha</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="ambient-layer"></div>
+
+<!-- ═══════════ TITLE INTRO ═══════════ -->
+<div class="overlay" id="introOverlay">
+  <div class="intro-stage">
+    <div class="intro-mandala">🕉️</div>
+    <div class="intro-orbits">
+      <div class="orbit-diya">🪔</div>
+      <div class="orbit-diya">🌸</div>
+      <div class="orbit-diya">🪔</div>
+      <div class="orbit-diya">🌸</div>
+    </div>
+    <div class="intro-title-wrap">
+      <div class="intro-title" id="introTitle" aria-label="Mushak">
+        <span class="letter" style="animation-delay: 0.2s">M</span>
+        <span class="letter" style="animation-delay: 0.42s">u</span>
+        <span class="letter" style="animation-delay: 0.64s">s</span>
+        <span class="letter" style="animation-delay: 0.86s">h</span>
+        <span class="letter" style="animation-delay: 1.08s">a</span>
+        <span class="letter" style="animation-delay: 1.30s">k</span>
+      </div>
+      <div class="intro-subtitle">SHADOW OF GANESHA</div>
+      <div class="intro-divider"></div>
+      <div class="intro-blessing">🕉️ गणपति बाप्पा मोरया 🕉️</div>
+    </div>
+    <div class="intro-mushak">🐭</div>
+    <div class="intro-skip">Tap anywhere to continue</div>
+  </div>
+</div>
+
+<!-- ═══════════ STORY ═══════════ -->
+<div class="overlay hidden" id="storyOverlay">
+  <div class="story-container">
+    <div class="story-scene" data-scene="0">
+      <div class="story-visual">
+        <img class="story-img" src="images/story/scene1.png" alt="Mushak's home"
+             onerror="this.replaceWith(Object.assign(document.createElement('div'),{textContent:'🐭🥟🌙',style:'font-size:clamp(3.5rem,12vw,8rem);letter-spacing:clamp(16px,4vw,50px);filter:drop-shadow(0 8px 20px rgba(255,213,107,0.6))'}))">
+      </div>
+      <div class="story-text">In the home of Ganesh Ji, lived a little mouse named <b>Mushak</b>.</div>
+    </div>
+    <div class="story-scene" data-scene="1">
+      <div class="story-visual">
+        <img class="story-img" src="images/story/scene2.png" alt="Mushak's dream"
+             onerror="this.replaceWith(Object.assign(document.createElement('div'),{textContent:'🐭🥟✨',style:'font-size:clamp(3.5rem,12vw,8rem);letter-spacing:clamp(16px,4vw,50px);filter:drop-shadow(0 8px 20px rgba(255,213,107,0.6))'}))">
+      </div>
+      <div class="story-text">Every night, Mushak dreamed of Ganesh Ji's <b>sacred modaks</b>.</div>
+    </div>
+    <div class="story-scene" data-scene="2">
+      <div class="story-visual">
+        <img class="story-img" src="images/story/scene3.png" alt="Ganesh Ji watches"
+             onerror="this.replaceWith(Object.assign(document.createElement('div'),{textContent:'🐘👀🕉️',style:'font-size:clamp(3.5rem,12vw,8rem);letter-spacing:clamp(16px,4vw,50px);filter:drop-shadow(0 8px 20px rgba(255,213,107,0.6))'}))">
+      </div>
+      <div class="story-text"><b>Ganesh Ji</b>, the remover of obstacles, sees all things.</div>
+    </div>
+    <div class="story-scene" data-scene="3">
+      <div class="story-visual">
+        <img class="story-img" src="images/story/scene4.png" alt="Mushak's plan"
+             onerror="this.replaceWith(Object.assign(document.createElement('div'),{textContent:'🐭🙏💭',style:'font-size:clamp(3.5rem,12vw,8rem);letter-spacing:clamp(16px,4vw,50px);filter:drop-shadow(0 8px 20px rgba(255,213,107,0.6))'}))">
+      </div>
+      <div class="story-text">But Mushak had a plan: be sneaky, be patient... and <b>pray</b>.</div>
+    </div>
+    <div class="story-scene" data-scene="4">
+      <div class="story-visual">
+        <img class="story-img" src="images/story/scene5.png" alt="The heist begins"
+             onerror="this.replaceWith(Object.assign(document.createElement('div'),{textContent:'🐭🥟🌟',style:'font-size:clamp(3.5rem,12vw,8rem);letter-spacing:clamp(16px,4vw,50px);filter:drop-shadow(0 8px 20px rgba(255,213,107,0.6))'}))">
+      </div>
+      <div class="story-text">So begins... <b>The Great Modak Heist</b>.</div>
+    </div>
+    <div class="story-progress">
+      <div class="story-dot active" data-dot="0"></div>
+      <div class="story-dot" data-dot="1"></div>
+      <div class="story-dot" data-dot="2"></div>
+      <div class="story-dot" data-dot="3"></div>
+      <div class="story-dot" data-dot="4"></div>
+    </div>
+    <button class="story-skip" id="storySkipBtn">Skip ▶</button>
+  </div>
+</div>
+
+<!-- ═══════════ HOME PAGE ═══════════ -->
+<div class="overlay hidden" id="homeOverlay">
+  <div class="overlay-card home-card">
+    <div class="home-header">
+      <div class="home-icon">🐭</div>
+      <h1>Mushak</h1>
+      <div class="home-sub">Shadow of Ganesha</div>
+      <div class="home-blessing">🕉️</div>
+    </div>
+
+    <div class="home-menu">
+      <button class="menu-btn primary" id="homePlayBtn">
+        <span class="mb-icon">🎮</span>
+        <span class="mb-label">Play</span>
+        <span class="mb-sub">Start the heist</span>
+      </button>
+      <button class="menu-btn" id="homeHowToBtn">
+        <span class="mb-icon">📖</span>
+        <span class="mb-label">How to Play</span>
+        <span class="mb-sub">Learn the rules</span>
+      </button>
+      <button class="menu-btn" id="homeProfileBtn">
+        <span class="mb-icon">👤</span>
+        <span class="mb-label">Profile</span>
+        <span class="mb-sub">Your stats & progress</span>
+      </button>
+      <button class="menu-btn" id="homeLeaderboardBtn">
+        <span class="mb-icon">🏆</span>
+        <span class="mb-label">Leaderboard</span>
+        <span class="mb-sub">Top 10 scores</span>
+      </button>
+      <button class="menu-btn" id="homeSettingsBtn">
+        <span class="mb-icon">⚙️</span>
+        <span class="mb-label">Settings</span>
+        <span class="mb-sub">Sound & controls</span>
+      </button>
+      <button class="menu-btn danger" id="homeExitBtn">
+        <span class="mb-icon">🚪</span>
+        <span class="mb-label">Exit</span>
+        <span class="mb-sub">Close the game</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ HOW TO PLAY ═══════════ -->
+<div class="overlay hidden" id="howToOverlay">
+  <div class="overlay-card howto-card">
+    <h1>📖 How to Play</h1>
+    <h2>Your complete guide to the Modak Heist</h2>
+
+    <div class="howto-section">
+      <h3>🎯 Goal</h3>
+      <div class="howto-visual">
+        <div class="howto-visual-item">
+          <div class="hv-emoji">🥟</div>
+          <div class="hv-label">Collect ALL modaks</div>
+        </div>
+        <div class="hv-arrow">→</div>
+        <div class="howto-visual-item">
+          <div class="hv-emoji">🏠</div>
+          <div class="hv-label">Reach the Safe Zone</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="howto-section">
+      <h3>👀 Ganesh Ji's Eyes</h3>
+      <div class="howto-visual">
+        <div class="howto-visual-item">
+          <div class="hv-emoji">👀</div>
+          <div class="hv-label"><b>Eyes OPEN</b><br>FREEZE! Don't move.</div>
+        </div>
+        <div class="howto-visual-item">
+          <div class="hv-emoji">😌</div>
+          <div class="hv-label"><b>Eyes CLOSED</b><br>MOVE! Sneak freely.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="howto-section">
+      <h3>🎮 Controls (Laptop)</h3>
+      <div class="howto-visual controls-visual">
+        <div class="howto-visual-item">
+          <div class="hv-emoji">⌨️</div>
+          <div class="hv-label"><b>Move</b><br>Arrow Keys / WASD</div>
+        </div>
+        <div class="howto-visual-item">
+          <div class="hv-emoji">🙏</div>
+          <div class="hv-label"><b>Pray</b><br>SPACE key</div>
+        </div>
+        <div class="howto-visual-item">
+          <div class="hv-emoji">⚡</div>
+          <div class="hv-label"><b>Power</b><br>SHIFT key</div>
+        </div>
+        <div class="howto-visual-item">
+          <div class="hv-emoji">⏸️</div>
+          <div class="hv-label"><b>Pause</b><br>P or ESC</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="howto-section">
+      <h3>📱 Controls (Phone)</h3>
+      <div class="howto-visual controls-visual">
+        <div class="howto-visual-item">
+          <div class="hv-emoji">⏪</div>
+          <div class="hv-label"><b>D-pad</b><br>Move left/right/up/down</div>
+        </div>
+        <div class="howto-visual-item">
+          <div class="hv-emoji">🙏</div>
+          <div class="hv-label"><b>Pray button</b><br>Bottom-right</div>
+        </div>
+        <div class="howto-visual-item">
+          <div class="hv-emoji">⚡</div>
+          <div class="hv-label"><b>Power button</b><br>Bottom-right</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="howto-section">
+      <h3>💥 How You Lose</h3>
+      <div class="howto-visual">
+        <div class="howto-visual-item">
+          <div class="hv-emoji">👁️</div>
+          <div class="hv-label"><b>Suspicion 100%</b><br>Caught by Ganesh</div>
+        </div>
+        <div class="howto-visual-item">
+          <div class="hv-emoji">⏱️</div>
+          <div class="hv-label"><b>Time runs out</b><br>Ganesh wakes up</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="howto-section">
+      <h3>🏆 Score Points</h3>
+      <div class="howto-visual controls-visual">
+        <div class="howto-visual-item">
+          <div class="hv-emoji">🥟</div>
+          <div class="hv-label"><b>Modak</b><br>10 pts</div>
+        </div>
+        <div class="howto-visual-item">
+          <div class="hv-emoji">✨</div>
+          <div class="hv-label"><b>Golden</b><br>75 pts</div>
+        </div>
+        <div class="howto-visual-item">
+          <div class="hv-emoji">🌺</div>
+          <div class="hv-label"><b>Blessing</b><br>100 pts</div>
+        </div>
+        <div class="howto-visual-item">
+          <div class="hv-emoji">🔥</div>
+          <div class="hv-label"><b>Combo</b><br>Multiplier</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex-row">
+      <button class="btn" id="closeHowToBtn">Got it! 🎉</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PROFILE ═══════════ -->
+<div class="overlay hidden" id="profileOverlay">
+  <div class="overlay-card">
+    <h1>👤 Profile</h1>
+    <h2>Your journey as Mushak</h2>
+
+    <div class="profile-avatar-wrap">
+      <div class="profile-avatar">🐭</div>
+    </div>
+
+    <div class="name-input-wrap">
+      <label for="profileNameInput">Your Name</label>
+      <input type="text" class="name-input" id="profileNameInput" placeholder="Enter your name..." maxlength="16" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false">
+    </div>
+
+    <div class="profile-stats">
+      <div class="stat-card">
+        <div class="stat-icon">🏆</div>
+        <div class="stat-value" id="profileHighScore">0</div>
+        <div class="stat-label">High Score</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🎮</div>
+        <div class="stat-value" id="profilePlays">0</div>
+        <div class="stat-label">Games Played</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🕉️</div>
+        <div class="stat-value" id="profileTeachings">0/12</div>
+        <div class="stat-label">Teachings</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⭐</div>
+        <div class="stat-value" id="profileStars">0</div>
+        <div class="stat-label">Total Stars</div>
+      </div>
+    </div>
+
+    <div class="flex-row">
+      <button class="btn" id="saveProfileBtn">💾 Save</button>
+      <button class="btn btn-secondary btn-small" id="closeProfileBtn">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ LEADERBOARD ═══════════ -->
+<div class="overlay hidden" id="leaderboardOverlay">
+  <div class="overlay-card">
+    <h1>🏆 Leaderboard</h1>
+    <h2>Top Mushak thieves</h2>
+    <div class="leaderboard-list" id="homeLeaderboardList"></div>
+    <div class="flex-row">
+      <button class="btn" id="closeLeaderboardBtn">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ SETTINGS ═══════════ -->
+<div class="overlay hidden" id="settingsOverlay">
+  <div class="overlay-card">
+    <h1>⚙️ Settings</h1>
+    <h2>Customize your experience</h2>
+
+    <div class="settings-list">
+      <div class="setting-row">
+        <div class="setting-label"><span class="icon">🔊</span> Sound Effects</div>
+        <div class="toggle-switch on" id="toggleSfx"></div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label"><span class="icon">🎵</span> Background Music</div>
+        <div class="toggle-switch on" id="toggleMusic"></div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label"><span class="icon">📳</span> Vibration</div>
+        <div class="toggle-switch on" id="toggleVibrate"></div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label"><span class="icon">🎚️</span> Master Volume</div>
+        <div class="slider-wrap">
+          <input type="range" min="0" max="100" value="80" class="slider" id="volumeSlider">
+          <span class="slider-value" id="volumeValue">80%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-heading" style="margin-top: 16px;">⚠️ Danger Zone</div>
+    <div class="settings-list">
+      <div class="setting-row" style="border-color: rgba(220,38,38,0.5);">
+        <div class="setting-label" style="color: #fca5a5;">
+          <span class="icon">🗑️</span> Reset Leaderboard
+        </div>
+        <button class="btn btn-small" id="resetLeaderboardBtn" style="background: linear-gradient(180deg, #dc2626, #991b1b); color: white;">Reset</button>
+      </div>
+      <div class="setting-row" style="border-color: rgba(220,38,38,0.5);">
+        <div class="setting-label" style="color: #fca5a5;">
+          <span class="icon">💥</span> Reset All Data
+        </div>
+        <button class="btn btn-small" id="resetAllBtn" style="background: linear-gradient(180deg, #dc2626, #991b1b); color: white;">Reset</button>
+      </div>
+    </div>
+
+    <div class="flex-row">
+      <button class="btn" id="closeSettingsBtn">✓ Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ CHARACTER SELECT ═══════════ -->
+<div class="overlay hidden" id="charOverlay">
+  <div class="overlay-card">
+    <h1>🐭 Choose Your Mushak</h1>
+    <h2>Each has a unique superpower</h2>
+    <div class="step-indicator">
+      <div class="step-dot active">1</div><div class="step-line"></div>
+      <div class="step-dot">2</div><div class="step-line"></div>
+      <div class="step-dot">3</div>
+    </div>
+    <div class="step-label">Character → Theme → Play</div>
+
+    <div class="preview-panel">
+      <div class="preview-box">
+        <div class="preview-label">👀 Preview</div>
+        <div class="preview-img-wrap">
+          <div class="preview-emoji" id="charPreviewAvatar">🐭</div>
+          <img class="preview-img" id="charPreviewImg" alt="" style="display:none;">
+        </div>
+        <div class="preview-name" id="charPreviewName">Classic Mushak</div>
+        <div class="preview-desc" id="charPreviewDesc">🕶️ Shadow Dash — 3s invisibility</div>
+      </div>
+      <div class="preview-box">
+        <div class="preview-label">⚡ Stats</div>
+        <div class="preview-desc" id="charPreviewStats" style="font-size:0.75rem;color:var(--gold-bright);font-weight:bold;">⚡ Speed: ★★★<br>👁️ Caution: ★★★</div>
+        <div class="preview-desc" id="charPreviewFlavor" style="font-size:0.65rem;margin-top:6px;font-style:italic;">Balanced all-rounder.</div>
+      </div>
+    </div>
+
+    <div class="char-grid" id="charGrid"></div>
+    <div class="flex-row">
+      <button class="btn btn-secondary btn-small" id="charBackBtn">← Home</button>
+      <button class="btn" id="charNextBtn">Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ THEME SELECT ═══════════ -->
+<div class="overlay hidden" id="themeOverlay">
+  <div class="overlay-card">
+    <h1>🎨 Choose Your World</h1>
+    <h2>Each theme changes the mood</h2>
+    <div class="step-indicator">
+      <div class="step-dot done">✓</div><div class="step-line"></div>
+      <div class="step-dot active">2</div><div class="step-line"></div>
+      <div class="step-dot">3</div>
+    </div>
+    <div class="step-label">Character → Theme → Play</div>
+
+    <div class="preview-panel">
+      <div class="preview-box">
+        <div class="preview-label">🌍 Preview</div>
+        <div class="preview-img-wrap" style="width:120px;height:80px;border-radius:12px;overflow:hidden;border:2px solid rgba(230,177,67,0.4);">
+          <div class="preview-emoji" id="themePreviewIcon" style="font-size:2.5rem;">🪔</div>
+          <img class="preview-img" id="themePreviewImg" alt="" style="width:120px;height:80px;object-fit:cover;border-radius:10px;">
+        </div>
+        <div class="preview-name" id="themePreviewName" style="margin-top:8px;">Diwali Night</div>
+        <div class="preview-desc" id="themePreviewDesc">Balanced difficulty</div>
+      </div>
+      <div class="preview-box">
+        <div class="preview-label">🎮 Effect</div>
+        <div class="preview-desc" id="themePreviewEffect" style="font-size:0.7rem;color:var(--gold-bright);line-height:1.6;">Normal modak count<br>Normal Ganesh speed</div>
+      </div>
+    </div>
+
+    <div class="theme-grid" id="themeGrid"></div>
+    <div class="flex-row">
+      <button class="btn btn-secondary btn-small" id="themeBackBtn">← Back</button>
+      <button class="btn" id="themeNextBtn">Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ TUTORIAL ═══════════ -->
+<div class="overlay hidden" id="startOverlay">
+  <div class="overlay-card">
+    <h1>📖 How to Play</h1>
+    <h2>Master the Modak Heist</h2>
+    <div class="step-indicator">
+      <div class="step-dot done">✓</div><div class="step-line"></div>
+      <div class="step-dot done">✓</div><div class="step-line"></div>
+      <div class="step-dot active">3</div>
+    </div>
+    <div class="step-label">Character → Theme → Play</div>
+
+    <div class="tutorial-slide active" data-slide="0">
+      <div class="slide-title">🎯 Your Mission</div>
+      <div class="slide-visual-grid">
+        <div class="slide-visual-item">
+          <div class="sv-emoji">🥟</div>
+          <div class="sv-label">Collect every modak</div>
+        </div>
+        <div class="sv-arrow">→</div>
+        <div class="slide-visual-item">
+          <div class="sv-emoji">🏠</div>
+          <div class="sv-label">Reach Safe Zone</div>
+        </div>
+      </div>
+      <div class="bullet-list">
+        <div class="bullet-item"><span class="bullet-icon">⭐</span><div>Finish quickly for a <b>3-star bonus</b>.</div></div>
+        <div class="bullet-item"><span class="bullet-icon">📈</span><div>Each level gets <b>harder</b> and <b>faster</b>.</div></div>
+      </div>
+    </div>
+
+    <div class="tutorial-slide" data-slide="1">
+      <div class="slide-title">👀 Ganesh Ji Sees All</div>
+      <div class="slide-visual-grid">
+        <div class="slide-visual-item good">
+          <div class="sv-emoji">👀</div>
+          <div class="sv-label"><b>Eyes OPEN</b><br>FREEZE! Don't move</div>
+        </div>
+        <div class="slide-visual-item">
+          <div class="sv-emoji">😌</div>
+          <div class="sv-label"><b>Eyes CLOSED</b><br>MOVE! Sneak freely</div>
+        </div>
+      </div>
+      <div class="bullet-list">
+        <div class="bullet-item"><span class="bullet-icon">💥</span><div>Moving while seen raises your <b>suspicion</b>.</div></div>
+        <div class="bullet-item"><span class="bullet-icon">🎯</span><div>If suspicion hits <b>100%</b>, you're caught.</div></div>
+      </div>
+    </div>
+
+    <div class="tutorial-slide" data-slide="2">
+      <div class="slide-title">🎮 Your Controls</div>
+      <div class="slide-visual-grid">
+        <div class="slide-visual-item">
+          <div class="sv-emoji">⏪</div>
+          <div class="sv-label"><b>D-pad / Arrows</b><br>Move Mushak</div>
+        </div>
+        <div class="slide-visual-item">
+          <div class="sv-emoji">🙏</div>
+          <div class="sv-label"><b>PRAY</b><br>SPACE / 🙏 button<br>Cools suspicion by 20</div>
+        </div>
+        <div class="slide-visual-item">
+          <div class="sv-emoji">⚡</div>
+          <div class="sv-label"><b>POWER</b><br>SHIFT / ⚡ button<br>Your unique ability</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tutorial-slide" data-slide="3">
+      <div class="slide-title">💥 When You Lose</div>
+      <div class="slide-visual-grid">
+        <div class="slide-visual-item bad">
+          <div class="sv-emoji">👁️</div>
+          <div class="sv-label"><b>Suspicion 100%</b><br>Caught!</div>
+        </div>
+        <div class="slide-visual-item bad">
+          <div class="sv-emoji">⏱️</div>
+          <div class="sv-label"><b>Time Up</b><br>Ganesh wakes</div>
+        </div>
+      </div>
+      <div class="bullet-list">
+        <div class="bullet-item"><span class="bullet-icon">🙏</span><div>Use <b>Pray</b> to lower suspicion fast.</div></div>
+        <div class="bullet-item"><span class="bullet-icon">⏸️</span><div>You can <b>Pause</b> anytime — look for the ⏸ button.</div></div>
+      </div>
+    </div>
+
+    <div class="tutorial-slide" data-slide="4">
+      <div class="slide-title">🏆 Score Points</div>
+      <div class="slide-visual-grid score-grid">
+        <div class="slide-visual-item">
+          <div class="sv-emoji">🥟</div>
+          <div class="sv-label"><b>10 pts</b></div>
+        </div>
+        <div class="slide-visual-item">
+          <div class="sv-emoji">✨</div>
+          <div class="sv-label"><b>75 pts</b></div>
+        </div>
+        <div class="slide-visual-item">
+          <div class="sv-emoji">🌺</div>
+          <div class="sv-label"><b>100 pts</b></div>
+        </div>
+        <div class="slide-visual-item">
+          <div class="sv-emoji">🔥</div>
+          <div class="sv-label"><b>Combo</b></div>
+        </div>
+      </div>
+      <div class="bullet-list">
+        <div class="bullet-item"><span class="bullet-icon">⏱️</span><div>Faster wins = <b>Time Bonus</b> points.</div></div>
+        <div class="bullet-item"><span class="bullet-icon">🏆</span><div>Beat your <b>high score</b> to top the leaderboard!</div></div>
+      </div>
+    </div>
+
+    <div class="slide-dots" id="storyDots">
+      <div class="slide-dot active" data-dot="0"></div>
+      <div class="slide-dot" data-dot="1"></div>
+      <div class="slide-dot" data-dot="2"></div>
+      <div class="slide-dot" data-dot="3"></div>
+      <div class="slide-dot" data-dot="4"></div>
+    </div>
+
+    <div class="flex-row">
+      <button class="btn btn-secondary btn-small" id="tutBackBtn">← Back</button>
+      <button class="btn btn-secondary btn-small" id="tutSlidePrevBtn" style="display:none;">← Prev</button>
+      <button class="btn btn-secondary btn-small" id="tutSlideNextBtn">Next →</button>
+      <button class="btn" id="startBtn" style="display:none;">🎮 Start Playing</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ NAME ENTRY ═══════════ -->
+<div class="overlay hidden" id="nameOverlay">
+  <div class="overlay-card">
+    <h1>🏆 Almost Ready!</h1>
+    <h2>Enter your name for the leaderboard</h2>
+    <div class="name-input-wrap">
+      <label for="startNameInput">Your Name</label>
+      <input type="text" class="name-input" id="startNameInput" placeholder="Enter your name..." maxlength="16" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false">
+    </div>
+    <div class="flex-row">
+      <button class="btn btn-secondary btn-small" id="nameBackBtn">← Back</button>
+      <button class="btn" id="nameStartBtn">🎮 Begin Heist</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ PAUSE ═══════════ -->
+<div class="overlay hidden" id="pauseOverlay">
+  <div class="overlay-card">
+    <h1>⏸️ Paused</h1>
+    <p>Mushak takes a modak break 🥟</p>
+    <div class="flex-row">
+      <button class="btn" id="resumeBtn">▶ Resume</button>
+      <button class="btn btn-secondary btn-small" id="restartFromPauseBtn">🔄 Restart</button>
+      <button class="btn btn-secondary btn-small" id="pauseHowToBtn">📖 How to Play</button>
+      <button class="btn btn-secondary btn-small" id="exitToHomeBtn">🚪 Exit to Home</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ LEVEL COMPLETE ═══════════ -->
+<div class="overlay hidden" id="levelCompleteOverlay">
+  <div class="overlay-card">
+    <h1 id="levelCompleteTitle">🎉 Level Clear!</h1>
+    <div class="star-rating" id="starRating">⭐⭐⭐</div>
+    <div class="funny-quip" id="levelCompleteQuip">🐭 "That was easy... what's next?"</div>
+    <div class="level-score-badge">
+      <span class="lsb-value" id="totalScore">0</span>
+      <span class="lsb-label">Score</span>
+    </div>
+    <div class="level-bonus-badge">Time Bonus: <b id="timeBonus">0</b></div>
+    <div class="flex-row">
+      <button class="btn" id="nextLevelBtn">➡ Next Level</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ TIME OVER ═══════════ -->
+<div class="overlay hidden" id="timeOverOverlay">
+  <div class="overlay-card">
+    <div class="big-emoji">⏱️</div>
+    <h1 id="timeOverTitle">Time's Up!</h1>
+    <div class="funny-quip" id="timeOverQuip">🐭 "Bappa needed his modaks back..."</div>
+    <p class="result-line">Score: <b id="timeOverScore">0</b> · Level: <b id="timeOverLevel">1</b>/5</p>
+    <div class="panel-heading" style="margin-top:14px;">🏆 Leaderboard</div>
+    <div class="leaderboard-list" id="timeOverLeaderboard"></div>
+    <div class="flex-row">
+      <button class="btn" id="timeOverRetryBtn">🍥 Try Again</button>
+      <button class="btn btn-secondary btn-small" id="timeOverMenuBtn">🏠 Home</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ GAME OVER ═══════════ -->
+<div class="overlay hidden" id="gameOverOverlay">
+  <div class="overlay-card">
+    <div class="big-emoji" id="gameOverEmoji">🙏</div>
+    <h1 id="gameOverTitle">Ganesh Ji Noticed</h1>
+    <div class="funny-quip" id="gameOverQuip">🐭 "Caught red-pawed!"</div>
+    <p class="result-line">Score: <b id="finalScore">0</b> · Level: <b id="finalRound">1</b>/5 · Best: <b id="finalHighScore">0</b></p>
+    <div class="lesson-card">
+      <div class="lesson-title" id="lessonTitle">🕉️ Today's Teaching</div>
+      <div class="lesson-text" id="lessonText">"..."</div>
+      <div class="lesson-source" id="lessonSource">— Ganesh Ji</div>
+    </div>
+    <div class="panel-heading" style="margin-top:14px;">🏆 Leaderboard</div>
+    <div class="leaderboard-list" id="leaderboardList"></div>
+    <div class="flex-row">
+      <button class="btn" id="tryAgainBtn">🍥 Play Again</button>
+      <button class="btn btn-secondary btn-small" id="gameOverMenuBtn">🏠 Home</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ VICTORY ═══════════ -->
+<div class="overlay hidden" id="victoryOverlay">
+  <div class="overlay-card">
+    <div class="big-emoji">🕉️🐘🕉️</div>
+    <h1>Victory!</h1>
+    <div class="funny-quip" id="victoryQuip">🐭 "I did it!"</div>
+    <p class="result-line">Score: <b id="victoryScore">0</b> 🥟 · Best: <b id="victoryHighScore">0</b></p>
+    <div class="panel-heading" style="margin-top:14px;">🏆 Leaderboard</div>
+    <div class="leaderboard-list" id="victoryLeaderboardList"></div>
+    <div class="flex-row">
+      <button class="btn" id="victoryAgainBtn">🍥 Play Again</button>
+      <button class="btn btn-secondary btn-small" id="victoryMenuBtn">🏠 Home</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ GAME SHELL ═══════════ -->
+<div class="app-shell hidden" id="appShell">
+  <aside class="side-panel" id="leftPanel">
+    <div class="panel-heading">📖 Quick Guide</div>
+    <div class="instruction-item"><span class="instr-icon">🎯</span><div>Collect all modaks, then reach Safe Zone.</div></div>
+    <div class="instruction-item"><span class="instr-icon">👀</span><div>Freeze when Ganesh's eyes are OPEN.</div></div>
+    <div class="instruction-item"><span class="instr-icon">🙏</span><div>Pray to cool suspicion fast.</div></div>
+    <div class="instruction-item"><span class="instr-icon">⚡</span><div>Power for emergency escape.</div></div>
+  </aside>
+
+  <main class="main-stage" id="mainStage">
+    <div class="top-bar">
+      <div class="suspicion-bar" id="suspicionBar">
+        <div class="suspicion-top">
+          <div class="suspicion-label">👁️ Suspicion</div>
+          <div class="suspicion-status-badge" id="suspicionStatus">CALM</div>
+        </div>
+        <div class="suspicion-meter">
+          <div class="suspicion-fill" id="suspicionFill"></div>
+        </div>
+      </div>
+
+      <!-- Big Timer -->
+      <div class="big-timer-card" id="timerBox">
+        <div class="bt-icon">⏱️</div>
+        <div class="bt-value" id="timerDisplay">60</div>
+        <div class="bt-label">seconds left</div>
+      </div>
+
+      <div class="hud-row">
+        <div class="hud-card score-card" id="scoreBox"><span class="hud-icon">🥟</span><span id="scoreDisplay">0</span></div>
+        <div class="hud-card" id="roundBox"><span class="hud-icon">🎯</span><span id="roundDisplay">1</span>/5</div>
+        <div class="hud-card high-card" id="highBox"><span class="hud-icon">🏆</span><span id="highScoreDisplay">0</span></div>
+      </div>
+      <div class="level-tracker-row">
+        <span class="level-tracker-label">Level</span>
+        <div class="level-dots" id="levelDots">
+          <div class="level-dot current"></div>
+          <div class="level-dot"></div>
+          <div class="level-dot"></div>
+          <div class="level-dot"></div>
+          <div class="level-dot"></div>
+        </div>
+        <span class="level-name-inline" id="levelName">Home Sweet Home</span>
+      </div>
+    </div>
+
+    <div class="canvas-frame">
+      <canvas id="gameCanvas" width="800" height="500"></canvas>
+      <div class="divine-indicator" id="divineIndicator">🕉️ Divya Drishti 🕉️</div>
+    </div>
+  </main>
+
+  <aside class="side-panel" id="rightPanel">
+    <div class="panel-heading">⚡ Divine Powers</div>
+    <div class="power-item" id="lpPray" data-action="pray">
+      <span class="power-icon">🙏</span>
+      <div class="power-info"><div class="power-name">Pray</div><span class="power-key">SPACE</span></div>
+      <span class="power-status" id="lpPrayStatus">READY</span>
+    </div>
+    <div class="power-item" id="lpPower" data-action="power">
+      <span class="power-icon" id="lpPowerIcon">⚡</span>
+      <div class="power-info"><div class="power-name" id="lpPowerName">Super Power</div><span class="power-key">SHIFT</span></div>
+      <span class="power-status" id="lpPowerStatus">READY</span>
+    </div>
+    <div class="panel-heading" style="margin-top:12px;">🕉️ Teachings</div>
+    <div class="instruction-item"><span class="instr-icon">✨</span><div>Collected: <b><span id="teachingsCount">0</span>/12</b></div></div>
+  </aside>
+</div>
+
+<!-- In-game top-right buttons -->
+<div class="top-corner-menu hidden" id="topCornerMenu">
+  <button class="icon-btn" id="pauseBtn" aria-label="Pause" title="Pause">⏸️</button>
+  <button class="icon-btn" id="quickHomeBtn" aria-label="Home" title="Exit to Home">🏠</button>
+</div>
+
+<!-- D-pad -->
+<div class="dpad" id="dpad">
+  <button class="dpad-btn up" data-dir="up" aria-label="Move up">▲</button>
+  <button class="dpad-btn left" data-dir="left" aria-label="Move left">◀</button>
+  <div class="dpad-center">🐭</div>
+  <button class="dpad-btn right" data-dir="right" aria-label="Move right">▶</button>
+  <button class="dpad-btn down" data-dir="down" aria-label="Move down">▼</button>
+</div>
+
+<!-- Touch actions -->
+<div class="touch-actions" id="touchActions">
+  <button class="touch-action-btn pray ready" id="taPray" aria-label="Pray">🙏<span class="ta-label">PRAY</span></button>
+  <button class="touch-action-btn power ready" id="taPower" aria-label="Power"><span id="taPowerIcon">⚡</span><span class="ta-label">POWER</span></button>
+</div>
+
+<!-- Orientation hint -->
+<div class="orientation-hint" id="orientationHint">
+  <div class="rotate-icon">📱</div>
+  <div class="hint-title">Rotate Your Device</div>
+  <div class="hint-text">Mushak is best played in landscape mode.</div>
+</div>
+
+<!-- Cinematic banners -->
+<div class="cinematic-banner" id="cinematicBanner">
+  <span class="cb-icon" id="cbIcon">✨</span>
+  <div class="cb-title" id="cbTitle">LEVEL UP</div>
+  <div class="cb-sub" id="cbSub">READY</div>
+</div>
+<div class="divine-flash" id="divineFlash"></div>
+<div class="power-flash" id="powerFlash"></div>
+
+<script src="game.js"></script>
+</body>
+</html>
