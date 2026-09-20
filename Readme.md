@@ -70,7 +70,7 @@ Modak-Heist/
 
 > The project structure may change as development continues.
 
-## 🏆 Hackathon Project
+
 
 **Modak Heist** was created as part of a game design competition focused on creating a fun and engaging game inspired by **Ganesh Chaturthi**.
 
