@@ -343,12 +343,6 @@
     <div class="settings-list">
       <div class="setting-row" style="border-color: rgba(220,38,38,0.5);">
         <div class="setting-label" style="color: #fca5a5;">
-          <span class="icon">🗑️</span> Reset Leaderboard
-        </div>
-        <button class="btn btn-small" id="resetLeaderboardBtn" style="background: linear-gradient(180deg, #dc2626, #991b1b); color: white;">Reset</button>
-      </div>
-      <div class="setting-row" style="border-color: rgba(220,38,38,0.5);">
-        <div class="setting-label" style="color: #fca5a5;">
           <span class="icon">💥</span> Reset All Data
         </div>
         <button class="btn btn-small" id="resetAllBtn" style="background: linear-gradient(180deg, #dc2626, #991b1b); color: white;">Reset</button>
@@ -434,7 +428,7 @@
   </div>
 </div>
 
-<!-- ═══════════ TUTORIAL ═══════════ -->
+<!-- ═══════════ TUTORIAL (before training) ═══════════ -->
 <div class="overlay hidden" id="startOverlay">
   <div class="overlay-card">
     <h1>📖 How to Play</h1>
@@ -684,7 +678,6 @@
         </div>
       </div>
 
-      <!-- Big Timer -->
       <div class="big-timer-card" id="timerBox">
         <div class="bt-icon">⏱️</div>
         <div class="bt-value" id="timerDisplay">60</div>
@@ -768,6 +761,12 @@
 </div>
 <div class="divine-flash" id="divineFlash"></div>
 <div class="power-flash" id="powerFlash"></div>
+
+<!-- Training Ground instruction overlay -->
+<div class="training-instructions" id="trainingInstructions">
+  <div class="ti-hand" id="tiHand">👆</div>
+  <div class="ti-text" id="tiText">Welcome to Training Ground!</div>
+</div>
 
 <script src="game.js"></script>
 </body>

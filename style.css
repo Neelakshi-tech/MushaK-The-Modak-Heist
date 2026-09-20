@@ -1582,6 +1582,47 @@ canvas {
 .power-flash.play { animation: powerFlash 1s ease-out forwards; }
 @keyframes powerFlash { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }
 
+/* ═══════════ TRAINING INSTRUCTIONS ═══════════ */
+.training-instructions {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: linear-gradient(0deg, rgba(10,6,18,0.98) 0%, rgba(26,14,46,0.95) 80%, transparent 100%);
+  padding: 20px 24px calc(20px + var(--safe-b));
+  z-index: 500;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 20px;
+  pointer-events: none;
+}
+.training-instructions.active { display: flex; }
+.ti-hand {
+  font-size: 3rem;
+  animation: handBounce 0.8s ease-in-out infinite;
+  filter: drop-shadow(0 0 16px var(--gold-bright));
+  flex-shrink: 0;
+  line-height: 1;
+}
+@keyframes handBounce {
+  0%,100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-16px) scale(1.15); }
+}
+.ti-text {
+  background: linear-gradient(135deg, rgba(255,213,107,0.25), rgba(230,177,67,0.15));
+  border: 3px solid var(--gold-bright);
+  border-radius: 20px;
+  padding: 16px 28px;
+  font-size: clamp(1rem, 3vw, 1.5rem);
+  font-weight: 900;
+  color: var(--gold-bright);
+  text-shadow: 0 2px 0 var(--gold-shadow), 0 0 20px rgba(255,213,107,0.6);
+  box-shadow: 0 0 40px rgba(255,213,107,0.4), 0 8px 0 var(--gold-shadow);
+  text-align: center;
+  line-height: 1.4;
+  max-width: 700px;
+  letter-spacing: 0.5px;
+}
+
 /* ═══════════ D-PAD & TOUCH ACTIONS ═══════════ */
 .dpad {
   position: fixed;

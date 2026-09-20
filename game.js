@@ -1,19 +1,18 @@
 /* ═══════════════════════════════════════════════════════════
    MUSHAAK — Shadow of Ganesha
-   Main game logic — Intro music fixed version
+   Main game logic — Final version with Training Ground
    ═══════════════════════════════════════════════════════════ */
 
 (() => {
   'use strict';
 
   // ═══════════════════════════════════════════════════════════
-  //  RESET LEADERBOARD ONCE (v3 fresh)
+  //  DATA VERSION (leaderboard reset once only)
   // ═══════════════════════════════════════════════════════════
-  const LB_VERSION = 'v3-fresh';
+  const LB_VERSION = 'v4-final';
   if (localStorage.getItem('mushakLBVersion') !== LB_VERSION) {
     localStorage.removeItem('mushakLeaderboard');
     localStorage.removeItem('mushakHighScore');
-    localStorage.removeItem('mushakPlayerName');
     localStorage.setItem('mushakLBVersion', LB_VERSION);
   }
 
@@ -84,10 +83,7 @@
   const loadSound = (k, src) => new Promise(r => {
     const a = new Audio(); a.preload='auto';
     a.oncanplaythrough = () => { loadedSounds[k]=a; r(); };
-    a.onerror = () => {
-      console.warn('❌ Sound failed to load:', src);
-      loadedSounds[k]=null; r();
-    };
+    a.onerror = () => { loadedSounds[k]=null; r(); };
     a.src = src;
     setTimeout(() => { if (!loadedSounds[k]) { loadedSounds[k]=null; r(); } }, 2500);
   });
@@ -96,8 +92,6 @@
     for (const k in IMAGES) p.push(loadImage(k, IMAGES[k]));
     for (const k in SOUNDS) p.push(loadSound(k, SOUNDS[k]));
     await Promise.all(p);
-    console.log('🎵 Loaded sounds:', Object.keys(loadedSounds).filter(k => loadedSounds[k]));
-    console.log('❌ Missing sounds:', Object.keys(loadedSounds).filter(k => !loadedSounds[k]));
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -105,7 +99,7 @@
   // ═══════════════════════════════════════════════════════════
   let bgMusic = null, introMusic = null;
   let audioCtx = null, audioPrimed = false;
-  let introMusicUnlockPending = false; // ← if autoplay was blocked, queue it
+  let introMusicUnlockPending = false;
 
   function initAudio() {
     if (!audioCtx) {
@@ -114,7 +108,6 @@
     if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
   }
 
-  // Unlock ALL audio on the first user interaction
   function primeAudio() {
     if (audioPrimed) return;
     audioPrimed = true;
@@ -128,8 +121,6 @@
         source.start(0);
       }
     } catch(e) {}
-
-    // ▶ If intro music was queued while blocked, play it now
     if (introMusicUnlockPending) {
       introMusicUnlockPending = false;
       tryPlayIntroMusic();
@@ -140,151 +131,51 @@
     window.addEventListener(evt, primeAudio, { once: false, passive: true });
   });
 
-  // ═══════════════════════════════════════════════════════════
-  //  SOUND PLAYERS
-  // ═══════════════════════════════════════════════════════════
-  function sfxClick() {
+  // ── SFX helpers ──
+  function playSound(key, vol = 0.7) {
     if (!settings.sfx) return;
-    const s = loadedSounds.click;
+    const s = loadedSounds[key];
     if (!s) return;
-    try {
-      const c = s.cloneNode();
-      c.volume = masterVolume(0.55);
-      c.play().catch(()=>{});
-    } catch(e) {}
+    try { const c = s.cloneNode(); c.volume = masterVolume(vol); c.play().catch(()=>{}); } catch(e) {}
   }
+  const sfxClick = () => playSound('click', 0.55);
+  const sfxCollect = () => playSound('collect', 0.7);
+  const sfxGolden = () => playSound('golden', 0.85);
+  const sfxSafe = () => playSound('safe', 0.8);
+  const sfxLevelComplete = () => playSound('levelcomplete', 0.85);
+  const sfxPowerup = () => playSound('poweup', 0.85);
+  const sfxStart = () => playSound('start', 0.8);
 
-  function sfxCollect() {
-    if (!settings.sfx) return;
-    const s = loadedSounds.collect;
-    if (!s) return;
-    try {
-      const c = s.cloneNode();
-      c.volume = masterVolume(0.7);
-      c.play().catch(()=>{});
-    } catch(e) {}
-  }
-
-  function sfxGolden() {
-    if (!settings.sfx) return;
-    const s = loadedSounds.golden;
-    if (!s) return;
-    try {
-      const c = s.cloneNode();
-      c.volume = masterVolume(0.85);
-      c.play().catch(()=>{});
-    } catch(e) {}
-  }
-
-  function sfxSafe() {
-    if (!settings.sfx) return;
-    const s = loadedSounds.safe;
-    if (!s) return;
-    try {
-      const c = s.cloneNode();
-      c.volume = masterVolume(0.8);
-      c.play().catch(()=>{});
-    } catch(e) {}
-  }
-
-  function sfxLevelComplete() {
-    if (!settings.sfx) return;
-    const s = loadedSounds.levelcomplete;
-    if (!s) return;
-    try {
-      const c = s.cloneNode();
-      c.volume = masterVolume(0.85);
-      c.play().catch(()=>{});
-    } catch(e) {}
-  }
-
-  function sfxPowerup() {
-    if (!settings.sfx) return;
-    const s = loadedSounds.poweup;
-    if (!s) return;
-    try {
-      const c = s.cloneNode();
-      c.volume = masterVolume(0.85);
-      c.play().catch(()=>{});
-    } catch(e) {}
-  }
-
-  function sfxStart() {
-    if (!settings.sfx) return;
-    const s = loadedSounds.start;
-    if (!s) return;
-    try {
-      const c = s.cloneNode();
-      c.volume = masterVolume(0.8);
-      c.play().catch(()=>{});
-    } catch(e) {}
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  //  MUSIC LAYERS
-  // ═══════════════════════════════════════════════════════════
-
-  // Background gameplay music
+  // ── Background music ──
   function startBgMusic() {
     if (!settings.music) return;
     const m = loadedSounds.bgmusic;
     if (!m) return;
-    if (!bgMusic) {
-      bgMusic = m.cloneNode();
-      bgMusic.loop = true;
-    }
+    if (!bgMusic) { bgMusic = m.cloneNode(); bgMusic.loop = true; }
     bgMusic.volume = masterVolume(0.28);
     bgMusic.play().catch(()=>{});
   }
   function pauseBgMusic() { if (bgMusic) { try { bgMusic.pause(); } catch(e){} } }
   function resumeBgMusic() {
     if (!settings.music) return;
-    if (bgMusic) {
-      bgMusic.volume = masterVolume(0.28);
-      bgMusic.play().catch(()=>{});
-    }
+    if (bgMusic) { bgMusic.volume = masterVolume(0.28); bgMusic.play().catch(()=>{}); }
   }
-  function stopBgMusic() {
-    if (bgMusic) { try { bgMusic.pause(); bgMusic.currentTime = 0; } catch(e){} }
-  }
+  function stopBgMusic() { if (bgMusic) { try { bgMusic.pause(); bgMusic.currentTime = 0; } catch(e){} } }
 
-  // ─────────────────────────────────────────────────────────
-  //  INTRO MUSIC — plays during title animation
-  //  Handles browser autoplay blocking gracefully
-  // ─────────────────────────────────────────────────────────
+  // ── Intro music with autoplay fallback ──
   function tryPlayIntroMusic() {
     if (!settings.music) return false;
     const m = loadedSounds.intromusic;
-    if (!m) {
-      console.warn('❌ intromusic.mp3 not loaded — check: sounds/intromusic.mp3');
-      return false;
-    }
-    if (!introMusic) {
-      introMusic = m.cloneNode();
-      introMusic.loop = true;
-    }
+    if (!m) return false;
+    if (!introMusic) { introMusic = m.cloneNode(); introMusic.loop = true; }
     introMusic.volume = masterVolume(0.55);
     try {
       const promise = introMusic.play();
       if (promise && typeof promise.then === 'function') {
-        promise.then(() => {
-          console.log('✅ intromusic playing');
-        }).catch(() => {
-          console.warn('🔇 intromusic autoplay blocked — will play on next tap');
-          introMusicUnlockPending = true;
-        });
+        promise.then(() => {}).catch(() => { introMusicUnlockPending = true; });
       }
       return true;
-    } catch(e) {
-      console.warn('🔇 intromusic play() failed:', e);
-      introMusicUnlockPending = true;
-      return false;
-    }
-  }
-
-  function startIntroMusic() {
-    introMusicUnlockPending = false;
-    tryPlayIntroMusic();
+    } catch(e) { introMusicUnlockPending = true; return false; }
   }
 
   function stopIntroMusic() {
@@ -297,8 +188,7 @@
         fade += 0.15;
         if (fade >= 1) {
           clearInterval(interval);
-          try { introMusic.pause(); introMusic.currentTime = 0; } catch(e){}
-          try { introMusic.volume = startVol; } catch(e){}
+          try { introMusic.pause(); introMusic.currentTime = 0; introMusic.volume = startVol; } catch(e){}
           return;
         }
         try { introMusic.volume = Math.max(0, startVol * (1 - fade)); } catch(e){}
@@ -322,42 +212,26 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  //  DOM
+  //  DOM REFS
   // ═══════════════════════════════════════════════════════════
   const canvas = document.getElementById('gameCanvas');
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
   const $ = id => document.getElementById(id);
 
-  const homeOverlay=$('homeOverlay');
-  const howToOverlay=$('howToOverlay');
-  const profileOverlay=$('profileOverlay');
-  const leaderboardOverlay=$('leaderboardOverlay');
-  const settingsOverlay=$('settingsOverlay');
-  const charOverlay=$('charOverlay');
-  const themeOverlay=$('themeOverlay');
-  const startOverlay=$('startOverlay');
-  const nameOverlay=$('nameOverlay');
-  const pauseOverlay=$('pauseOverlay');
-  const levelCompleteOverlay=$('levelCompleteOverlay');
-  const timeOverOverlay=$('timeOverOverlay');
-  const gameOverOverlay=$('gameOverOverlay');
-  const victoryOverlay=$('victoryOverlay');
-  const introOverlay=$('introOverlay');
-  const storyOverlay=$('storyOverlay');
-  const appShell=$('appShell');
-  const topCornerMenu=$('topCornerMenu');
+  const homeOverlay=$('homeOverlay'), howToOverlay=$('howToOverlay'), profileOverlay=$('profileOverlay');
+  const leaderboardOverlay=$('leaderboardOverlay'), settingsOverlay=$('settingsOverlay');
+  const charOverlay=$('charOverlay'), themeOverlay=$('themeOverlay'), startOverlay=$('startOverlay');
+  const nameOverlay=$('nameOverlay'), pauseOverlay=$('pauseOverlay'), levelCompleteOverlay=$('levelCompleteOverlay');
+  const timeOverOverlay=$('timeOverOverlay'), gameOverOverlay=$('gameOverOverlay'), victoryOverlay=$('victoryOverlay');
+  const introOverlay=$('introOverlay'), storyOverlay=$('storyOverlay');
+  const appShell=$('appShell'), topCornerMenu=$('topCornerMenu');
 
   const scoreDisplay=$('scoreDisplay'), highScoreDisplay=$('highScoreDisplay');
-  const suspicionFill=$('suspicionFill'), suspicionStatus=$('suspicionStatus');
-  const suspicionBar=$('suspicionBar');
-  const scoreBox=$('scoreBox');
-  const roundDisplay=$('roundDisplay');
-  const levelDots=$('levelDots');
-  const teachingsCount=$('teachingsCount');
-  const timerDisplay=$('timerDisplay'), timerBox=$('timerBox');
-  const divineIndicator=$('divineIndicator');
-  const levelName=$('levelName');
+  const suspicionFill=$('suspicionFill'), suspicionStatus=$('suspicionStatus'), suspicionBar=$('suspicionBar');
+  const scoreBox=$('scoreBox'), roundDisplay=$('roundDisplay'), levelDots=$('levelDots');
+  const teachingsCount=$('teachingsCount'), timerDisplay=$('timerDisplay'), timerBox=$('timerBox');
+  const divineIndicator=$('divineIndicator'), levelName=$('levelName');
 
   const lpPray=$('lpPray'), lpPower=$('lpPower');
   const lpPowerIcon=$('lpPowerIcon'), lpPowerName=$('lpPowerName');
@@ -366,44 +240,35 @@
   const dpad=$('dpad'), touchActions=$('touchActions');
   const taPray=$('taPray'), taPower=$('taPower'), taPowerIcon=$('taPowerIcon');
 
-  const finalScoreSpan=$('finalScore'), finalRoundSpan=$('finalRound');
-  const finalHighScoreSpan=$('finalHighScore');
+  const finalScoreSpan=$('finalScore'), finalRoundSpan=$('finalRound'), finalHighScoreSpan=$('finalHighScore');
   const gameOverEmoji=$('gameOverEmoji'), gameOverTitle=$('gameOverTitle'), gameOverQuip=$('gameOverQuip');
   const timeOverScore=$('timeOverScore'), timeOverLevel=$('timeOverLevel'), timeOverQuip=$('timeOverQuip');
 
   const cinematicBanner=$('cinematicBanner'), cbIcon=$('cbIcon'), cbTitle=$('cbTitle'), cbSub=$('cbSub');
   const divineFlash=$('divineFlash'), powerFlash=$('powerFlash');
 
-  const charPreviewAvatar=$('charPreviewAvatar');
-  const charPreviewImg=$('charPreviewImg');
-  const charPreviewName=$('charPreviewName');
-  const charPreviewDesc=$('charPreviewDesc');
-  const charPreviewStats=$('charPreviewStats');
-  const charPreviewFlavor=$('charPreviewFlavor');
+  const charPreviewAvatar=$('charPreviewAvatar'), charPreviewImg=$('charPreviewImg');
+  const charPreviewName=$('charPreviewName'), charPreviewDesc=$('charPreviewDesc');
+  const charPreviewStats=$('charPreviewStats'), charPreviewFlavor=$('charPreviewFlavor');
 
-  const themePreviewIcon=$('themePreviewIcon');
-  const themePreviewImg=$('themePreviewImg');
-  const themePreviewName=$('themePreviewName');
-  const themePreviewDesc=$('themePreviewDesc');
+  const themePreviewIcon=$('themePreviewIcon'), themePreviewImg=$('themePreviewImg');
+  const themePreviewName=$('themePreviewName'), themePreviewDesc=$('themePreviewDesc');
   const themePreviewEffect=$('themePreviewEffect');
 
-  const leaderboardList=$('leaderboardList');
-  const victoryLeaderboardList=$('victoryLeaderboardList');
-  const timeOverLeaderboard=$('timeOverLeaderboard');
-  const homeLeaderboardList=$('homeLeaderboardList');
+  const leaderboardList=$('leaderboardList'), victoryLeaderboardList=$('victoryLeaderboardList');
+  const timeOverLeaderboard=$('timeOverLeaderboard'), homeLeaderboardList=$('homeLeaderboardList');
 
-  const startNameInput=$('startNameInput');
-  const profileNameInput=$('profileNameInput');
-  const profileHighScore=$('profileHighScore');
-  const profilePlays=$('profilePlays');
-  const profileTeachings=$('profileTeachings');
-  const profileStars=$('profileStars');
+  const startNameInput=$('startNameInput'), profileNameInput=$('profileNameInput');
+  const profileHighScore=$('profileHighScore'), profilePlays=$('profilePlays');
+  const profileTeachings=$('profileTeachings'), profileStars=$('profileStars');
 
   const toggleSfx=$('toggleSfx'), toggleMusic=$('toggleMusic'), toggleVibrate=$('toggleVibrate');
   const volumeSlider=$('volumeSlider'), volumeValue=$('volumeValue');
 
+  const trainingInstructions=$('trainingInstructions'), tiHand=$('tiHand'), tiText=$('tiText');
+
   // ═══════════════════════════════════════════════════════════
-  //  DATA
+  //  GAME DATA
   // ═══════════════════════════════════════════════════════════
   const CHARACTERS = [
     { id:'classic', name:'Classic Mushak', avatar:'🐭', powerName:'🕶️ Shadow Dash',
@@ -499,11 +364,17 @@
     '🐭 "Ganesh Ji smiled! That\'s a compliment, right?"',
     '🐭 "Modak heist master — available for birthday parties."'
   ];
+  const TRAINING_FUNNY_END = [
+    '🐭 "Training complete! I\'m ready for the real heist now! Bappa, here I come!"',
+    '🐭 "Okay okay, I got it! No more training wheels — time to steal some modaks!"',
+    '🐭 "Mastered the art of sneaking! Ganesh Ji won\'t know what hit him!"',
+    '🐭 "Sensei Mushak has graduated! Time to put my skills to the test!"'
+  ];
 
   const STORY_SCENE_DURATIONS = [7000, 7000, 8000, 8000, 8000];
 
   // ═══════════════════════════════════════════════════════════
-  //  STATE
+  //  GAME STATE
   // ═══════════════════════════════════════════════════════════
   let selectedChar = CHARACTERS[0];
   let selectedTheme = THEMES[0];
@@ -520,6 +391,7 @@
   let lessonsShown = new Set(JSON.parse(localStorage.getItem('mushakTeachings') || '[]'));
   let leaderboard = JSON.parse(localStorage.getItem('mushakLeaderboard') || '[]');
   let playerName = localStorage.getItem('mushakPlayerName') || '';
+  let profileCreated = localStorage.getItem('mushakProfileCreated') === 'true';
 
   let activeMushakImg = null, activeMushakPrayImg = null, activeMushakCaughtImg = null;
   let activeThemeBg = null;
@@ -550,6 +422,20 @@
   const POWER_COOLDOWN = 1500;
   let powerActiveTimer = 0;
   let shadowActive = false, midasActive = false;
+
+  // ── Training mode state ──
+  let isTraining = false;
+  let trainingStep = 0;
+  const TRAINING_STEPS = [
+    { text: '👆 Move with the D-pad or Arrow Keys!', hand: '👆', action: null, waitFor: 'move' },
+    { text: '🥟 Collect the modak when it appears!', hand: '👉', action: null, waitFor: 'collect' },
+    { text: '👀 Ganesh Ji opened his eyes — FREEZE!', hand: '✋', action: null, waitFor: 'freeze' },
+    { text: '😌 Eyes closed — you can move again!', hand: '👆', action: null, waitFor: 'move' },
+    { text: '🙏 Press PRAY (Space) to cool suspicion!', hand: '👇', action: 'pray', waitFor: 'pray' },
+    { text: '⚡ Press POWER (Shift) for your special ability!', hand: '👇', action: 'power', waitFor: 'power' },
+    { text: '⏱️ Watch the timer! Don\'t let it run out!', hand: '👆', action: null, waitFor: 'time' },
+    { text: '🏠 Now reach the Safe Zone to complete training!', hand: '👉', action: null, waitFor: 'safe' }
+  ];
 
   const keys = { up:false, down:false, left:false, right:false, space:false, shift:false };
   const QUIPS = ['Modak modak! 🥟','Sneaky sneaky 🐭','For Bappa 😇','Just one more 🤤',
@@ -683,16 +569,18 @@
   // ═══════════════════════════════════════════════════════════
   //  ROUND GENERATION
   // ═══════════════════════════════════════════════════════════
-  function generateRoundContent(lvIdx) {
+  function generateRoundContent(lvIdx, training = false) {
     modaks = []; powerUps = []; obstacles = [];
     divineBarriers = []; blessingFlowers = [];
     modaksCollected = 0;
     comboMilestone = 0;
+    goldenModak = null;
 
     const lvl = LEVELS[Math.min(lvIdx, LEVELS.length - 1)];
-    const difficulty = lvl.difficulty;
+    const difficulty = training ? 0.8 : lvl.difficulty;
 
-    const obsCount = Math.floor((3 + Math.min(lvIdx + 1, 6)) * difficulty);
+    // Obstacles
+    const obsCount = training ? 2 : Math.floor((3 + Math.min(lvIdx + 1, 6)) * difficulty);
     for (let i=0; i<obsCount; i++) {
       for (let tries=0; tries<200; tries++) {
         const ox = rand(230, W-80), oy = rand(60, H-70);
@@ -706,62 +594,96 @@
       }
     }
 
-    const themeMod = selectedTheme.modakMult;
-    const baseCount = Math.min(4 + lvIdx * 2, 16);
-    const count = Math.max(4, Math.floor(baseCount * themeMod * difficulty));
+    // Modaks
+    const themeMod = training ? 1.0 : selectedTheme.modakMult;
+    const baseCount = training ? 3 : Math.min(4 + lvIdx * 2, 16);
+    const count = training ? 3 : Math.max(4, Math.floor(baseCount * themeMod * difficulty));
     const MODAK_BUFFER = 42;
 
-    for (let i=0; i<count; i++) {
+    // In training, place modaks at specific strategic spots
+    if (training) {
+      const trainingSpots = [
+        { x: 300, y: 350 },
+        { x: 450, y: 250 },
+        { x: 550, y: 400 }
+      ];
+      for (let i = 0; i < Math.min(3, trainingSpots.length); i++) {
+        const spot = trainingSpots[i];
+        if (!obstacles.some(o =>
+          spot.x > o.x - MODAK_BUFFER && spot.x < o.x + o.w + MODAK_BUFFER &&
+          spot.y > o.y - MODAK_BUFFER && spot.y < o.y + o.h + MODAK_BUFFER)) {
+          modaks.push({ x: spot.x, y: spot.y, r: 18, collected:false, bob: Math.random()*Math.PI*2 });
+        } else {
+          // Fallback
+          for (let tries=0; tries<100; tries++) {
+            const mx = rand(250, W-60), my = rand(100, H-60);
+            if (mx < safeZone.x + safeZone.w + 30) continue;
+            if (dist(mx, my, ganesh.x, ganesh.y) < 150) continue;
+            const overlapsObstacle = obstacles.some(o =>
+              mx > o.x - MODAK_BUFFER && mx < o.x + o.w + MODAK_BUFFER &&
+              my > o.y - MODAK_BUFFER && my < o.y + o.h + MODAK_BUFFER);
+            if (overlapsObstacle) continue;
+            modaks.push({ x: mx, y: my, r: 18, collected:false, bob: Math.random()*Math.PI*2 });
+            break;
+          }
+        }
+      }
+    } else {
+      for (let i=0; i<count; i++) {
+        for (let tries=0; tries<400; tries++) {
+          const mx = rand(190, W-40), my = rand(70, H-40);
+          if (mx < safeZone.x + safeZone.w + 30) continue;
+          if (dist(mx, my, ganesh.x, ganesh.y) < 140) continue;
+          const overlapsObstacle = obstacles.some(o =>
+            mx > o.x - MODAK_BUFFER && mx < o.x + o.w + MODAK_BUFFER &&
+            my > o.y - MODAK_BUFFER && my < o.y + o.h + MODAK_BUFFER);
+          if (overlapsObstacle) continue;
+          const overlapsModak = modaks.some(m => dist(mx, my, m.x, m.y) < MODAK_BUFFER);
+          if (overlapsModak) continue;
+          const wedgedCount = obstacles.filter(o =>
+            mx > o.x - 50 && mx < o.x + o.w + 50 &&
+            my > o.y - 50 && my < o.y + o.h + 50).length;
+          if (wedgedCount > 1) continue;
+          modaks.push({ x: mx, y: my, r: 18, collected:false, bob: Math.random()*Math.PI*2 });
+          break;
+        }
+      }
+
+      // Golden modak (not in training)
       for (let tries=0; tries<400; tries++) {
-        const mx = rand(190, W-40), my = rand(70, H-40);
-        if (mx < safeZone.x + safeZone.w + 30) continue;
-        if (dist(mx, my, ganesh.x, ganesh.y) < 140) continue;
+        const gx = rand(220, W-40), gy = rand(80, H-40);
+        if (gx < safeZone.x + safeZone.w + 40) continue;
+        if (dist(gx, gy, ganesh.x, ganesh.y) < 140) continue;
         const overlapsObstacle = obstacles.some(o =>
-          mx > o.x - MODAK_BUFFER && mx < o.x + o.w + MODAK_BUFFER &&
-          my > o.y - MODAK_BUFFER && my < o.y + o.h + MODAK_BUFFER);
+          gx > o.x - 50 && gx < o.x + o.w + 50 && gy > o.y - 50 && gy < o.y + o.h + 50);
         if (overlapsObstacle) continue;
-        const overlapsModak = modaks.some(m => dist(mx, my, m.x, m.y) < MODAK_BUFFER);
+        const overlapsModak = modaks.some(m => dist(gx, gy, m.x, m.y) < 50);
         if (overlapsModak) continue;
-        const wedgedCount = obstacles.filter(o =>
-          mx > o.x - 50 && mx < o.x + o.w + 50 &&
-          my > o.y - 50 && my < o.y + o.h + 50).length;
-        if (wedgedCount > 1) continue;
-        modaks.push({ x: mx, y: my, r: 18, collected:false, bob: Math.random()*Math.PI*2 });
+        goldenModak = { x: gx, y: gy, r: 24, collected:false, bob:0 };
         break;
       }
     }
 
-    goldenModak = null;
-    for (let tries=0; tries<400; tries++) {
-      const gx = rand(220, W-40), gy = rand(80, H-40);
-      if (gx < safeZone.x + safeZone.w + 40) continue;
-      if (dist(gx, gy, ganesh.x, ganesh.y) < 140) continue;
-      const overlapsObstacle = obstacles.some(o =>
-        gx > o.x - 50 && gx < o.x + o.w + 50 && gy > o.y - 50 && gy < o.y + o.h + 50);
-      if (overlapsObstacle) continue;
-      const overlapsModak = modaks.some(m => dist(gx, gy, m.x, m.y) < 50);
-      if (overlapsModak) continue;
-      goldenModak = { x: gx, y: gy, r: 24, collected:false, bob:0 };
-      break;
-    }
-
-    const puCount = lvIdx < 2 ? 1 : (lvIdx < 4 ? 1 : 0);
-    for (let i=0; i<puCount; i++) {
-      for (let tries=0; tries<100; tries++) {
-        const px = rand(220, W-60), py = rand(80, H-60);
-        if (px > safeZone.x + safeZone.w + 40 && dist(px,py,ganesh.x,ganesh.y) > 110) {
-          powerUps.push({ x: px, y: py, r: 18, type: pick(['speed','shield','freeze']),
-            bob: Math.random()*Math.PI*2, collected:false });
-          break;
+    // Power-ups (skip in training)
+    if (!training) {
+      const puCount = lvIdx < 2 ? 1 : (lvIdx < 4 ? 1 : 0);
+      for (let i=0; i<puCount; i++) {
+        for (let tries=0; tries<100; tries++) {
+          const px = rand(220, W-60), py = rand(80, H-60);
+          if (px > safeZone.x + safeZone.w + 40 && dist(px,py,ganesh.x,ganesh.y) > 110) {
+            powerUps.push({ x: px, y: py, r: 18, type: pick(['speed','shield','freeze']),
+              bob: Math.random()*Math.PI*2, collected:false });
+            break;
+          }
         }
       }
     }
 
     ganesh.divinePowerType = Math.min(lvIdx, DIVINE_POWERS.length - 1);
     divineIndicator.textContent = currentDivinePower().label;
-    divineIndicator.style.display = 'block';
+    divineIndicator.style.display = training ? 'none' : 'block';
 
-    if (lvIdx >= 2) {
+    if (!training && lvIdx >= 2) {
       const barrierCount = Math.min(1 + Math.floor((lvIdx - 1) / 2), 3);
       for (let b = 0; b < barrierCount; b++) {
         for (let tries = 0; tries < 100; tries++) {
@@ -779,7 +701,7 @@
       }
     }
 
-    if (lvIdx >= 3) {
+    if (!training && lvIdx >= 3) {
       for (let f = 0; f < 2; f++) {
         for (let tries = 0; tries < 100; tries++) {
           const fx = rand(200, W - 60), fy = rand(70, H - 60);
@@ -814,9 +736,9 @@
     activeMushakCaughtImg = loadedImages[selectedChar.caughtKey] || loadedImages.mushakCaughtLegacy || activeMushakImg;
     activeThemeBg = loadedImages[selectedTheme.bgKey] || loadedImages.bgLegacy;
 
-    generateRoundContent(levelIndex);
+    generateRoundContent(levelIndex, isTraining);
     levelStartTime = performance.now();
-    levelTimeRemaining = LEVELS[levelIndex].timeLimit;
+    levelTimeRemaining = isTraining ? 90 : LEVELS[levelIndex].timeLimit;
     updateUI();
     updateLevelName();
     updateLevelDots();
@@ -828,6 +750,10 @@
   }
 
   function updateLevelName() {
+    if (isTraining) {
+      levelName.textContent = '🎓 Training Ground';
+      return;
+    }
     const divine = currentDivinePower();
     const lvl = LEVELS[levelIndex];
     levelName.textContent = `${lvl.icon} ${lvl.name} · ${divine.icon} ${divine.name}`;
@@ -837,10 +763,14 @@
     const dots = levelDots.querySelectorAll('.level-dot');
     dots.forEach((d, i) => {
       d.classList.remove('done', 'current');
-      if (i < levelIndex) d.classList.add('done');
-      else if (i === levelIndex) d.classList.add('current');
+      if (isTraining) {
+        if (i === 0) d.classList.add('current');
+      } else {
+        if (i < levelIndex) d.classList.add('done');
+        else if (i === levelIndex) d.classList.add('current');
+      }
     });
-    roundDisplay.textContent = (levelIndex + 1);
+    roundDisplay.textContent = isTraining ? 'T' : (levelIndex + 1);
   }
 
   function updateTeachingsHUD() { teachingsCount.textContent = lessonsShown.size; }
@@ -860,7 +790,8 @@
 
     if (gameActive && !paused) {
       const elapsed = (performance.now() - levelStartTime) / 1000;
-      const remaining = Math.max(0, LEVELS[levelIndex].timeLimit - elapsed);
+      const limit = isTraining ? 90 : LEVELS[levelIndex].timeLimit;
+      const remaining = Math.max(0, limit - elapsed);
       levelTimeRemaining = remaining;
       timerDisplay.textContent = Math.ceil(remaining);
       timerBox.classList.toggle('warning', remaining < 10);
@@ -901,7 +832,49 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  //  GANESH / MUSHAAK
+  //  TRAINING GROUND LOGIC
+  // ═══════════════════════════════════════════════════════════
+  let trainingMoveDone = false;
+  let trainingCollectDone = false;
+  let trainingFreezeDone = false;
+  let trainingPrayDone = false;
+  let trainingPowerDone = false;
+
+  function updateTrainingInstructions() {
+    if (!isTraining) return;
+    let step = trainingStep;
+
+    // Auto-advance based on progress
+    if (trainingStep === 0 && trainingMoveDone) step = 1;
+    if (trainingStep === 1 && trainingCollectDone) step = 2;
+    if (trainingStep === 2 && trainingFreezeDone) step = 3;
+    if (trainingStep === 3 && trainingMoveDone && modaksCollected >= 3) step = 4;
+    if (trainingStep === 4 && trainingPrayDone) step = 5;
+    if (trainingStep === 5 && trainingPowerDone) step = 6;
+    if (trainingStep === 6 && modaksCollected >= 3) step = 7;
+
+    if (step !== trainingStep) {
+      trainingStep = step;
+      if (trainingStep < TRAINING_STEPS.length) {
+        const s = TRAINING_STEPS[trainingStep];
+        tiText.textContent = s.text;
+        tiHand.textContent = s.hand;
+      }
+    }
+
+    // Ensure instructions are visible
+    if (trainingStep < TRAINING_STEPS.length) {
+      trainingInstructions.classList.add('active');
+      const s = TRAINING_STEPS[trainingStep];
+      tiText.textContent = s.text;
+      tiHand.textContent = s.hand;
+    } else {
+      trainingInstructions.classList.remove('active');
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  //  GANESH
   // ═══════════════════════════════════════════════════════════
   let ganeshPowerCooldown = 0;
   function triggerGaneshPowerCinematic() {
@@ -916,6 +889,27 @@
   }
 
   function updateGanesh(dt) {
+    if (isTraining) {
+      // Slower, predictable cycle in training
+      const slow = 0.7;
+      if (ganesh.isLooking) {
+        ganesh.lookTimer += dt * slow;
+        ganesh.eyeOpen = Math.min(1, ganesh.eyeOpen + 0.07);
+        if (ganesh.lookTimer > 50) {
+          ganesh.isLooking = false; ganesh.lookTimer = 0; ganesh.turnFlash = 15;
+        }
+      } else {
+        ganesh.lookTimer += dt * slow;
+        ganesh.eyeOpen = Math.max(0, ganesh.eyeOpen - 0.06);
+        if (ganesh.lookTimer > 90) {
+          ganesh.isLooking = true; ganesh.lookTimer = 0;
+          ganesh.lookDuration = 50; ganesh.lookCooldown = 90;
+          ganesh.turnFlash = 15;
+        }
+      }
+      if (ganesh.turnFlash > 0) ganesh.turnFlash--;
+      return;
+    }
     const themeMult = selectedTheme.ganeshMult;
     const lvlMult = LEVELS[levelIndex].difficulty;
     const slow = (ganeshSlowTimer > 0 ? 0.4 : 1) * themeMult * lvlMult;
@@ -985,19 +979,44 @@
           setEmote('🙏', 60);
         }
       }
+      // Training: mark movement done
+      if (isTraining && trainingStep === 0) trainingMoveDone = true;
+      if (isTraining && trainingStep === 3) trainingMoveDone = true;
+
       const immune = shieldActive || shadowActive || (powerActiveTimer > 0 && selectedChar.id === 'mota');
-      if (ganesh.isLooking && ganesh.eyeOpen > 0.4 && !immune) {
+      if (!isTraining && ganesh.isLooking && ganesh.eyeOpen > 0.4 && !immune) {
         suspicion += SUSPICION_BASE * selectedChar.suspicionMult * LEVELS[levelIndex].difficulty * dt;
         if (suspicion > 80 && slowMo <= 0) slowMo = 40;
         if (Math.random() < 0.012) setEmote(pick(['😳','😨','🫣','😅']), 45);
       }
+      // Training: if eyes open and moving, tiny suspicion increase (but never lose)
+      if (isTraining && ganesh.isLooking && ganesh.eyeOpen > 0.4) {
+        suspicion = Math.min(50, suspicion + 0.5 * dt);
+        if (trainingStep === 2) trainingFreezeDone = false;
+      }
     }
     if ((!ganesh.isLooking || ganesh.eyeOpen < 0.2) && suspicion > 0)
       suspicion = Math.max(0, suspicion - DECAY_RATE * dt);
+    if (isTraining && trainingStep === 2 && !ganesh.isLooking) {
+      // When eyes close after freeze step, mark done
+      if (ganesh.eyeOpen < 0.3) trainingFreezeDone = true;
+    }
+    if (isTraining && trainingStep === 2 && !ganesh.isLooking) {
+      if (!trainingFreezeDone && ganesh.eyeOpen < 0.2) {
+        // wait a moment then mark
+      }
+    }
+    // Detect freeze success: eyes open, player not moving
+    if (isTraining && ganesh.isLooking && ganesh.eyeOpen > 0.7) {
+      if (!dx && !dy) {
+        if (trainingStep === 2) trainingFreezeDone = true;
+      }
+    }
     if (shieldActive) suspicion = Math.max(0, suspicion - 0.15 * dt);
     if (shadowActive) suspicion = Math.max(0, suspicion - 0.2 * dt);
     if (powerActiveTimer > 0 && selectedChar.id === 'mota') suspicion = Math.max(0, suspicion - 0.25 * dt);
-    if (suspicion >= SUSPICION_MAX) {
+
+    if (!isTraining && suspicion >= SUSPICION_MAX) {
       if (selectedChar.id === 'mota' && mushak.hits < 1) {
         mushak.hits++; suspicion = 30;
         addPopup(mushak.x, mushak.y-40, '🛡️ Divine Shield held!', '#10b981', 22);
@@ -1013,6 +1032,7 @@
       if (powerActiveTimer <= 0) { shadowActive = false; midasActive = false; }
     }
     totalTimeSpent += dt / 60;
+    updateTrainingInstructions();
   }
 
   function collectModaks() {
@@ -1033,6 +1053,7 @@
         sfxCollect();
         setEmote(pick(['😋','😇','🤤','😊']), 40);
         scoreBox.classList.remove('pop'); void scoreBox.offsetWidth; scoreBox.classList.add('pop');
+        if (isTraining && modaksCollected >= 1) trainingCollectDone = true;
         if (comboCount >= 6 && comboCount >= comboMilestone + 6) {
           comboMilestone = comboCount;
           playCinematic('🔥', comboCount + 'x COMBO!', 'Mushak is unstoppable!', 1200);
@@ -1086,6 +1107,19 @@
     const inSafe = mushak.x > safeZone.x && mushak.x < safeZone.x + safeZone.w &&
                    mushak.y > safeZone.y && mushak.y < safeZone.y + safeZone.h;
     if (!inSafe) return;
+
+    if (isTraining) {
+      if (trainingStep >= 7) {
+        // Training complete!
+        completeTraining();
+      } else {
+        // Don't let them finish early in training
+        addPopup(mushak.x, mushak.y-40, '👆 Complete the training steps first!', '#ffd56b', 22);
+        mushak.x = safeZone.x + safeZone.w + 30;
+      }
+      return;
+    }
+
     const allDone = modaks.every(m => m.collected) &&
                     (goldenModak ? goldenModak.collected : true) &&
                     blessingFlowers.every(f => f.collected);
@@ -1116,6 +1150,24 @@
     setTimeout(() => { showLevelComplete(stars, timeBonus); }, 2000);
   }
 
+  function completeTraining() {
+    isTraining = false;
+    gameActive = false;
+    sfxLevelComplete();
+    shake(8);
+    playCinematic('🎓', 'TRAINING COMPLETE!', 'Mushak is ready!', 2200);
+    setTimeout(() => {
+      levelCompleteOverlay.classList.add('hidden');
+      $('levelCompleteTitle').textContent = '🎓 Training Complete!';
+      $('starRating').textContent = '⭐⭐⭐';
+      $('totalScore').textContent = score;
+      $('timeBonus').textContent = '+0';
+      $('levelCompleteQuip').textContent = pick(TRAINING_FUNNY_END);
+      $('nextLevelBtn').textContent = '➡ Start Level 1';
+      levelCompleteOverlay.classList.remove('hidden');
+    }, 2200);
+  }
+
   function showLevelComplete(stars, timeBonus) {
     gameActive = false;
     $('starRating').textContent = '⭐'.repeat(stars) + '☆'.repeat(3-stars);
@@ -1123,6 +1175,7 @@
     $('timeBonus').textContent = '+' + timeBonus;
     $('levelCompleteQuip').textContent = pick(FUNNY_LEVEL_CLEAR);
     $('levelCompleteTitle').textContent = pick(['🎉 Level Clear!', '🌟 Well Done!', '✨ Shabash!', '🎊 Smooth!']);
+    $('nextLevelBtn').textContent = '➡ Next Level';
     levelCompleteOverlay.classList.remove('hidden');
     if (score > highScore) {
       highScore = score;
@@ -1133,6 +1186,10 @@
 
   function nextLevel() {
     levelCompleteOverlay.classList.add('hidden');
+    if (isTraining) {
+      // Should not happen normally
+      return;
+    }
     levelIndex++;
     if (levelIndex >= LEVELS.length) { victory(); return; }
     score += 200;
@@ -1141,6 +1198,7 @@
     setTimeout(() => {
       resetGame(levelIndex);
       gameActive = true; paused = false;
+      if (useTouchControls) { dpad.classList.add('active'); touchActions.classList.add('active'); }
       setTimeout(() => {
         playCinematic(divine.icon, divine.name, 'Ganesh Ji\'s power grows', 1600);
       }, 800);
@@ -1180,6 +1238,7 @@
     addParticles(mushak.x, mushak.y, '#fde68a', 14);
     addRipple(mushak.x, mushak.y, '#fef3c7', 70);
     addPopup(mushak.x, mushak.y-40, '🙏 Om Gan Ganpataye!', '#a855f7', 22);
+    if (isTraining && trainingStep === 4) trainingPrayDone = true;
   }
 
   function activatePower() {
@@ -1215,10 +1274,16 @@
     shake(6);
     addParticles(mushak.x, mushak.y, c.color, 30, 7);
     addRipple(mushak.x, mushak.y, c.color, 130);
+    if (isTraining && trainingStep === 5) trainingPowerDone = true;
   }
 
   function timeOver() {
     if (!gameActive) return;
+    if (isTraining) {
+      // Training never ends on time - extend
+      levelStartTime = performance.now();
+      return;
+    }
     gameActive = false;
     gamesPlayed++;
     localStorage.setItem('mushakPlays', String(gamesPlayed));
@@ -1237,6 +1302,12 @@
 
   function gameOver() {
     if (!gameActive) return;
+    if (isTraining) {
+      // Training never ends on game over - just cool down
+      suspicion = 30;
+      addPopup(mushak.x, mushak.y-40, '🙏 Bappa is watching...', '#ffd56b', 20);
+      return;
+    }
     gameActive = false;
     gamesPlayed++;
     localStorage.setItem('mushakPlays', String(gamesPlayed));
@@ -1661,11 +1732,23 @@
     ctx.textAlign = 'center';
     ctx.fillText(`🥟 ${collected}/${total} modaks`, W/2, barY+27);
     ctx.textAlign = 'left';
+
+    if (isTraining) {
+      // Training header
+      ctx.save();
+      ctx.font = 'bold 18px "Comic Sans MS", cursive';
+      ctx.fillStyle = '#ffd56b';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = '#1a0e2e'; ctx.shadowBlur = 10;
+      ctx.fillText('🎓 TRAINING GROUND', W/2, 60);
+      ctx.restore();
+    }
+
     const allCollected = modaks.length > 0 &&
                         modaks.every(m => m.collected) &&
                         (goldenModak ? goldenModak.collected : true) &&
                         blessingFlowers.every(f => f.collected);
-    if (allCollected && gameActive) {
+    if (allCollected && gameActive && !isTraining) {
       const glow = 0.6 + Math.sin(t*0.01)*0.4;
       ctx.save();
       ctx.shadowColor = '#10b981'; ctx.shadowBlur = 20*glow;
@@ -1743,7 +1826,7 @@
       updateMushak(dt);
       if (gameActive) { collectModaks(); checkSafeZone(); }
       updateUI();
-      if (gameActive) {
+      if (gameActive && !isTraining) {
         const elapsed = (performance.now() - levelStartTime) / 1000;
         if (elapsed >= LEVELS[levelIndex].timeLimit) { timeOver(); return; }
       }
@@ -1886,6 +1969,7 @@
      charOverlay, themeOverlay, startOverlay, nameOverlay, pauseOverlay,
      levelCompleteOverlay, timeOverOverlay, gameOverOverlay, victoryOverlay,
      introOverlay, storyOverlay].forEach(o => { if (o) o.classList.add('hidden'); });
+    trainingInstructions.classList.remove('active');
   }
   function showHomeScreen() {
     hideAllOverlays();
@@ -1895,7 +1979,7 @@
     divineIndicator.style.display = 'none';
     dpad.classList.remove('active');
     touchActions.classList.remove('active');
-    gameActive = false; paused = false;
+    gameActive = false; paused = false; isTraining = false;
   }
   function showCharScreen() {
     hideAllOverlays();
@@ -2100,6 +2184,8 @@
     }
     playerName = name.slice(0, 16);
     localStorage.setItem('mushakPlayerName', playerName);
+    profileCreated = true;
+    localStorage.setItem('mushakProfileCreated', 'true');
     sfxGolden();
     vibrate(40);
     const btn = $('saveProfileBtn');
@@ -2143,28 +2229,17 @@
     if (introMusic) introMusic.volume = masterVolume(0.55);
   });
 
-  $('resetLeaderboardBtn').addEventListener('click', () => {
-    if (!confirm('Reset the leaderboard? This cannot be undone.')) return;
-    leaderboard = [];
-    saveLeaderboard();
-    renderLeaderboard('leaderboardList');
-    renderLeaderboard('victoryLeaderboardList');
-    renderLeaderboard('timeOverLeaderboard');
-    renderLeaderboard('homeLeaderboardList');
-    sfxClick();
-    vibrate(40);
-  });
-
   $('resetAllBtn').addEventListener('click', () => {
     if (!confirm('Reset ALL data? Everything will be erased.')) return;
     ['mushakLeaderboard','mushakHighScore','mushakTeachings','mushakPlayerName',
-     'mushakLBVersion','mushakStars','mushakPlays'].forEach(k => localStorage.removeItem(k));
+     'mushakLBVersion','mushakStars','mushakPlays','mushakProfileCreated'].forEach(k => localStorage.removeItem(k));
     leaderboard = [];
     lessonsShown = new Set();
     playerName = '';
     highScore = 0;
     totalStars = 0;
     gamesPlayed = 0;
+    profileCreated = false;
     highScoreDisplay.textContent = '0';
     updateTeachingsHUD();
     sfxClick();
@@ -2187,7 +2262,7 @@
     showSlide(slides.length - 1);
   });
 
-  function beginGame() {
+  function beginGame(training = true) {
     const name = startNameInput.value.trim();
     if (!name) {
       try { startNameInput.focus(); } catch(e){}
@@ -2197,6 +2272,10 @@
     }
     playerName = name.slice(0, 16);
     localStorage.setItem('mushakPlayerName', playerName);
+    if (!profileCreated) {
+      profileCreated = true;
+      localStorage.setItem('mushakProfileCreated', 'true');
+    }
 
     try { initAudio(); } catch(e){}
     sfxStart();
@@ -2205,18 +2284,43 @@
     topCornerMenu.classList.remove('hidden');
     gameActive = false; paused = false;
     totalPrayersUsed = 0; totalModaksCollected = 0; totalTimeSpent = 0;
+
+    // Reset training flags
+    isTraining = training;
+    trainingStep = 0;
+    trainingMoveDone = false;
+    trainingCollectDone = false;
+    trainingFreezeDone = false;
+    trainingPrayDone = false;
+    trainingPowerDone = false;
+    if (isTraining) {
+      tiText.textContent = TRAINING_STEPS[0].text;
+      tiHand.textContent = TRAINING_STEPS[0].hand;
+      trainingInstructions.classList.add('active');
+    } else {
+      trainingInstructions.classList.remove('active');
+    }
+
     resetGame(0);
     startBgMusic();
-    playCinematic(LEVELS[0].icon, 'LEVEL 1', LEVELS[0].name, 1800);
-    setTimeout(() => {
-      gameActive = true; paused = false;
-      if (useTouchControls) { dpad.classList.add('active'); touchActions.classList.add('active'); }
-    }, 1800);
+    if (isTraining) {
+      playCinematic('🎓', 'TRAINING GROUND', 'Learn the ropes!', 2200);
+      setTimeout(() => {
+        gameActive = true; paused = false;
+        if (useTouchControls) { dpad.classList.add('active'); touchActions.classList.add('active'); }
+      }, 2200);
+    } else {
+      playCinematic(LEVELS[0].icon, 'LEVEL 1', LEVELS[0].name, 1800);
+      setTimeout(() => {
+        gameActive = true; paused = false;
+        if (useTouchControls) { dpad.classList.add('active'); touchActions.classList.add('active'); }
+      }, 1800);
+    }
     for (const k in keys) keys[k] = false;
   }
 
-  $('nameStartBtn').addEventListener('click', beginGame);
-  startNameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') beginGame(); });
+  $('nameStartBtn').addEventListener('click', () => beginGame(true));
+  startNameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') beginGame(true); });
 
   $('pauseBtn').addEventListener('click', () => { sfxClick(); togglePause(); });
   $('quickHomeBtn').addEventListener('click', () => {
@@ -2225,6 +2329,7 @@
     if (!confirm('Exit to Home? Current game progress will be lost.')) return;
     paused = false;
     gameActive = false;
+    isTraining = false;
     pauseBgMusic();
     showHomeScreen();
   });
@@ -2241,6 +2346,13 @@
     paused = false; pauseOverlay.classList.add('hidden');
     gameActive = true;
     totalPrayersUsed = 0; totalModaksCollected = 0; totalTimeSpent = 0;
+    isTraining = true;
+    trainingStep = 0;
+    trainingMoveDone = false;
+    trainingCollectDone = false;
+    trainingFreezeDone = false;
+    trainingPrayDone = false;
+    trainingPowerDone = false;
     resetGame(0);
     if (useTouchControls) { dpad.classList.add('active'); touchActions.classList.add('active'); }
     for (const k in keys) keys[k] = false;
@@ -2255,11 +2367,32 @@
     if (!confirm('Exit to Home? Current game progress will be lost.')) return;
     paused = false;
     gameActive = false;
+    isTraining = false;
     pauseBgMusic();
     showHomeScreen();
   });
 
-  $('nextLevelBtn').addEventListener('click', () => { sfxClick(); nextLevel(); });
+  $('nextLevelBtn').addEventListener('click', () => {
+    sfxClick();
+    if (levelCompleteOverlay.classList.contains('hidden')) return;
+    // Check if training just completed
+    if (!isTraining && levelIndex === 0 && $('nextLevelBtn').textContent.includes('Start Level 1')) {
+      // We were in training, start real Level 1
+      levelCompleteOverlay.classList.add('hidden');
+      levelIndex = 0;
+      score = 0;
+      isTraining = false;
+      trainingInstructions.classList.remove('active');
+      playCinematic(LEVELS[0].icon, 'LEVEL 1', LEVELS[0].name, 1800);
+      setTimeout(() => {
+        resetGame(0);
+        gameActive = true; paused = false;
+        if (useTouchControls) { dpad.classList.add('active'); touchActions.classList.add('active'); }
+      }, 1800);
+      return;
+    }
+    nextLevel();
+  });
 
   $('timeOverRetryBtn').addEventListener('click', () => {
     sfxClick();
@@ -2268,6 +2401,7 @@
     topCornerMenu.classList.remove('hidden');
     gameActive = true; paused = false;
     totalPrayersUsed = 0; totalModaksCollected = 0; totalTimeSpent = 0;
+    isTraining = false;
     resetGame(0);
     if (useTouchControls) { dpad.classList.add('active'); touchActions.classList.add('active'); }
     for (const k in keys) keys[k] = false;
@@ -2281,6 +2415,7 @@
     topCornerMenu.classList.remove('hidden');
     gameActive = true; paused = false;
     totalPrayersUsed = 0; totalModaksCollected = 0; totalTimeSpent = 0;
+    isTraining = false;
     resetGame(0);
     if (useTouchControls) { dpad.classList.add('active'); touchActions.classList.add('active'); }
     for (const k in keys) keys[k] = false;
@@ -2294,6 +2429,7 @@
     topCornerMenu.classList.remove('hidden');
     gameActive = true; paused = false;
     totalPrayersUsed = 0; totalModaksCollected = 0; totalTimeSpent = 0;
+    isTraining = false;
     resetGame(0);
     if (useTouchControls) { dpad.classList.add('active'); touchActions.classList.add('active'); }
     for (const k in keys) keys[k] = false;
@@ -2329,7 +2465,7 @@
   });
 
   // ═══════════════════════════════════════════════════════════
-  //  TITLE INTRO — with intro music handling
+  //  TITLE INTRO
   // ═══════════════════════════════════════════════════════════
   let introFinished = false;
   let introTimer = null;
@@ -2369,8 +2505,7 @@
     window.addEventListener('pointerdown', skipIntroHandler);
     window.addEventListener('touchstart', skipIntroHandler, { passive: true });
     initAudio();
-    // ▶ Try to play intro music — if blocked, it queues for next user gesture
-    startIntroMusic();
+    tryPlayIntroMusic();
   }
 
   // ═══════════════════════════════════════════════════════════
