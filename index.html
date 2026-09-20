@@ -109,6 +109,11 @@
         <span class="mb-label">Play</span>
         <span class="mb-sub">Start the heist</span>
       </button>
+      <button class="menu-btn" id="homeMiniGamesBtn">
+        <span class="mb-icon">🎯</span>
+        <span class="mb-label">Mini Games</span>
+        <span class="mb-sub">Color · Quiz · Rain</span>
+      </button>
       <button class="menu-btn" id="homeHowToBtn">
         <span class="mb-icon">📖</span>
         <span class="mb-label">How to Play</span>
@@ -135,6 +140,95 @@
         <span class="mb-sub">Close the game</span>
       </button>
     </div>
+  </div>
+</div>
+
+<!-- ═══════════ MINI GAMES HUB ═══════════ -->
+<div class="overlay hidden" id="miniGamesOverlay">
+  <div class="overlay-card">
+    <h1>🎯 Mini Games</h1>
+    <h2>Fun breaks between levels!</h2>
+    <div class="minigame-grid">
+      <div class="minigame-card" id="mgColorCard">
+        <div class="mg-big-icon">🎨</div>
+        <div class="mg-name">Color Mushak</div>
+        <div class="mg-desc">Paint your mouse!</div>
+        <div class="mg-stars">✨✨✨</div>
+      </div>
+      <div class="minigame-card" id="mgQuizCard">
+        <div class="mg-big-icon">🧠</div>
+        <div class="mg-name">Ganesha Quiz</div>
+        <div class="mg-desc">5 questions of wisdom</div>
+        <div class="mg-stars">✨✨✨</div>
+      </div>
+      <div class="minigame-card" id="mgRainCard">
+        <div class="mg-big-icon">🥟</div>
+        <div class="mg-name">Modak Rain</div>
+        <div class="mg-desc">Catch falling modaks!</div>
+        <div class="mg-stars">✨✨✨</div>
+      </div>
+    </div>
+    <div class="flex-row">
+      <button class="btn btn-secondary btn-small" id="closeMiniGamesBtn">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ COLOR MUSHAK MINI-GAME ═══════════ -->
+<div class="overlay hidden" id="colorOverlay">
+  <div class="overlay-card color-card">
+    <h1>🎨 Color Your Mushak</h1>
+    <h2>Pick a color — it will be saved!</h2>
+    <div class="color-preview-wrap">
+      <div class="color-mushak-preview" id="colorMushakPreview">🐭</div>
+    </div>
+    <div class="color-swatches" id="colorSwatches"></div>
+    <div class="color-name-display" id="colorNameDisplay">Classic Grey</div>
+    <div class="flex-row">
+      <button class="btn" id="saveColorBtn">💾 Save Color</button>
+      <button class="btn btn-secondary btn-small" id="closeColorBtn">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ GANESHA QUIZ ═══════════ -->
+<div class="overlay hidden" id="quizOverlay">
+  <div class="overlay-card quiz-card">
+    <div class="quiz-progress-bar" id="quizProgressBar"></div>
+    <div class="quiz-header">
+      <div class="quiz-qnum" id="quizQNum">Question 1 / 5</div>
+      <div class="quiz-score-badge">⭐ <span id="quizScore">0</span></div>
+    </div>
+    <div class="quiz-emoji" id="quizEmoji">🕉️</div>
+    <h2 class="quiz-question" id="quizQuestion">Loading question...</h2>
+    <div class="quiz-options" id="quizOptions"></div>
+    <div class="quiz-feedback" id="quizFeedback"></div>
+    <div class="flex-row">
+      <button class="btn" id="quizNextBtn" style="display:none;">Next →</button>
+      <button class="btn btn-secondary btn-small" id="closeQuizBtn">← Exit</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ MODAK RAIN MINI-GAME ═══════════ -->
+<div class="overlay hidden" id="modakRainOverlay">
+  <div class="modak-rain-stage">
+    <canvas id="modakRainCanvas" width="800" height="500"></canvas>
+    <div class="modak-rain-title" id="modakRainTitle">✨ MODAK RAIN ✨</div>
+    <div class="modak-rain-sub" id="modakRainSub">Tap the falling modaks!</div>
+    <div class="modak-rain-tap" id="modakRainTap">👆 Tap modaks to collect bonus points!</div>
+    <div class="modak-rain-counter" id="modakRainCounter">Caught: 0 · Bonus: 0</div>
+  </div>
+</div>
+
+<!-- ═══════════ LEVEL CELEBRATION INTERSTITIAL ═══════════ -->
+<div class="overlay hidden" id="levelTransitionOverlay">
+  <div class="level-transition-stage">
+    <div class="lt-big-icon" id="ltBigIcon">🎉</div>
+    <div class="lt-title" id="ltTitle">LEVEL CLEAR!</div>
+    <div class="lt-sub" id="ltSub">+500 bonus points</div>
+    <div class="lt-stars" id="ltStars">⭐⭐⭐</div>
+    <div class="lt-next-hint" id="ltNextHint">Preparing next challenge...</div>
   </div>
 </div>
 
@@ -262,7 +356,7 @@
     <h2>Your journey as Mushak</h2>
 
     <div class="profile-avatar-wrap">
-      <div class="profile-avatar">🐭</div>
+      <div class="profile-avatar" id="profileAvatar">🐭</div>
       <div class="profile-level-badge" id="profileLevelBadge">Lv. 1</div>
     </div>
 
@@ -310,9 +404,9 @@
 <div class="overlay hidden" id="leaderboardOverlay">
   <div class="overlay-card">
     <h1>🏆 Leaderboard</h1>
-    <h2>Top Mushak thieves from all players</h2>
+    <h2>Top Mushak thieves — one entry per player</h2>
     <div class="leaderboard-tabs">
-      <button class="lb-tab active" id="lbTabAll">🌍 All Time</button>
+      <button class="lb-tab active" id="lbTabAll">🌍 Top 10</button>
       <button class="lb-tab" id="lbTabRecent">🕐 Recent</button>
     </div>
     <div class="leaderboard-list" id="homeLeaderboardList"></div>
@@ -611,16 +705,6 @@
     <div class="flex-row">
       <button class="btn" id="nextLevelBtn">➡ Next Level</button>
     </div>
-  </div>
-</div>
-
-<!-- ═══════════ INTER-LEVEL MODAK RAIN ═══════════ -->
-<div class="overlay hidden" id="modakRainOverlay">
-  <div class="modak-rain-stage">
-    <canvas id="modakRainCanvas" width="800" height="500"></canvas>
-    <div class="modak-rain-title" id="modakRainTitle">✨ BONUS ROUND ✨</div>
-    <div class="modak-rain-sub" id="modakRainSub">Catch the falling modaks!</div>
-    <div class="modak-rain-tap" id="modakRainTap">👆 Tap modaks to collect bonus points!</div>
   </div>
 </div>
 

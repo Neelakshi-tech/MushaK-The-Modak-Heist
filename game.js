@@ -1,21 +1,21 @@
 /* ═══════════════════════════════════════════════════════════
    MUSHAAK — Shadow of Ganesha
-   Main game logic — Final polished version
+   Complete game logic — Final polished version
    ═══════════════════════════════════════════════════════════ */
 
 (() => {
   'use strict';
 
   // ═══════════════════════════════════════════════════════════
-  //  DATA VERSION
+  //  VERSION
   // ═══════════════════════════════════════════════════════════
-  const LB_VERSION = 'v5-final';
+  const LB_VERSION = 'v6-final';
   if (localStorage.getItem('mushakLBVersion') !== LB_VERSION) {
     localStorage.setItem('mushakLBVersion', LB_VERSION);
   }
 
   // ═══════════════════════════════════════════════════════════
-  //  DEVICE DETECTION
+  //  DEVICE
   // ═══════════════════════════════════════════════════════════
   const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
   const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent);
@@ -219,7 +219,9 @@
   const nameOverlay=$('nameOverlay'), pauseOverlay=$('pauseOverlay'), levelCompleteOverlay=$('levelCompleteOverlay');
   const timeOverOverlay=$('timeOverOverlay'), gameOverOverlay=$('gameOverOverlay'), victoryOverlay=$('victoryOverlay');
   const introOverlay=$('introOverlay'), storyOverlay=$('storyOverlay');
-  const modakRainOverlay=$('modakRainOverlay');
+  const modakRainOverlay=$('modakRainOverlay'), miniGamesOverlay=$('miniGamesOverlay');
+  const colorOverlay=$('colorOverlay'), quizOverlay=$('quizOverlay');
+  const levelTransitionOverlay=$('levelTransitionOverlay');
   const appShell=$('appShell'), topCornerMenu=$('topCornerMenu');
 
   const scoreDisplay=$('scoreDisplay'), highScoreDisplay=$('highScoreDisplay');
@@ -263,7 +265,7 @@
   const trainingInstructions=$('trainingInstructions'), tiHand=$('tiHand'), tiText=$('tiText');
 
   // ═══════════════════════════════════════════════════════════
-  //  GAME DATA
+  //  DATA
   // ═══════════════════════════════════════════════════════════
   const CHARACTERS = [
     { id:'classic', name:'Classic Mushak', avatar:'🐭', powerName:'🕶️ Shadow Dash',
@@ -345,6 +347,45 @@
     { id:'veteran', icon:'👑', name:'Veteran', check: () => gamesPlayed >= 20 }
   ];
 
+  // Quiz questions
+  const QUIZ_QUESTIONS = [
+    {
+      q: 'What is Lord Ganesha\'s favorite sweet?',
+      emoji: '🥟',
+      options: ['Modak', 'Laddu', 'Barfi', 'Jalebi'],
+      correct: 0,
+      fact: 'Modak is beloved by Ganesha — that\'s why he\'s called Modakpriya!'
+    },
+    {
+      q: 'What is the name of Lord Ganesha\'s vehicle (vahana)?',
+      emoji: '🐭',
+      options: ['Peacock', 'Mouse', 'Swan', 'Tiger'],
+      correct: 1,
+      fact: 'Mushak (mouse) is Ganesha\'s vahana — the very mouse you play as!'
+    },
+    {
+      q: 'Which festival celebrates Lord Ganesha?',
+      emoji: '🪔',
+      options: ['Diwali', 'Holi', 'Ganesh Chaturthi', 'Navratri'],
+      correct: 2,
+      fact: 'Ganesh Chaturthi is the 10-day festival honoring Ganesha\'s birth!'
+    },
+    {
+      q: 'What does "Vighnaharta" mean?',
+      emoji: '🕉️',
+      options: ['Remover of obstacles', 'Lord of wealth', 'God of wisdom', 'Protector of cows'],
+      correct: 0,
+      fact: 'Vighnaharta = Remover of Obstacles — one of Ganesha\'s most loved names.'
+    },
+    {
+      q: 'What is Ganesha\'s elephant head a symbol of?',
+      emoji: '🐘',
+      options: ['Strength & wisdom', 'Only strength', 'Only beauty', 'Only speed'],
+      correct: 0,
+      fact: 'The elephant head represents wisdom, strength, and the ability to overcome obstacles.'
+    }
+  ];
+
   const FUNNY_LEVEL_CLEAR = [
     '🐭 "All modaks safely delivered! Bappa never suspected a thing."',
     '🐭 "Another level conquered! I\'m basically a ninja now."',
@@ -379,11 +420,28 @@
 
   const STORY_SCENE_DURATIONS = [7000, 7000, 8000, 8000, 8000];
 
+  // Mushak colors
+  const MUSHAK_COLORS = [
+    { id:'grey',   name:'Classic Grey',   hue: 0,   filter: 'none',                                            emoji:'🐭' },
+    { id:'golden', name:'Golden Soul',    hue: 45,  filter: 'hue-rotate(45deg) saturate(1.8) brightness(1.15)', emoji:'🐭' },
+    { id:'saffron',name:'Saffron Spirit', hue: 25,  filter: 'hue-rotate(25deg) saturate(2.2) brightness(1.1)',  emoji:'🐭' },
+    { id:'rose',   name:'Rose Blossom',   hue: 330, filter: 'hue-rotate(330deg) saturate(1.6) brightness(1.1)', emoji:'🐭' },
+    { id:'violet', name:'Violet Magic',   hue: 275, filter: 'hue-rotate(275deg) saturate(1.7) brightness(1.05)',emoji:'🐭' },
+    { id:'sky',    name:'Sky Blue',       hue: 200, filter: 'hue-rotate(200deg) saturate(1.5) brightness(1.1)', emoji:'🐭' },
+    { id:'mint',   name:'Mint Fresh',     hue: 150, filter: 'hue-rotate(150deg) saturate(1.5) brightness(1.1)', emoji:'🐭' },
+    { id:'ember',  name:'Fire Ember',     hue: 10,  filter: 'hue-rotate(10deg) saturate(2.4) brightness(1.05)',  emoji:'🐭' },
+    { id:'pearl',  name:'Pearl White',    hue: 0,   filter: 'brightness(1.5) saturate(0.6)',                     emoji:'🐭' },
+    { id:'midnight',name:'Midnight',      hue: 220, filter: 'hue-rotate(220deg) saturate(1.2) brightness(0.75)', emoji:'🐭' },
+    { id:'royal',  name:'Royal Purple',   hue: 290, filter: 'hue-rotate(290deg) saturate(2.0) brightness(0.95)', emoji:'🐭' },
+    { id:'emerald',name:'Emerald',        hue: 140, filter: 'hue-rotate(140deg) saturate(2.0) brightness(1.0)',  emoji:'🐭' }
+  ];
+
   // ═══════════════════════════════════════════════════════════
   //  STATE
   // ═══════════════════════════════════════════════════════════
   let selectedChar = CHARACTERS[0];
   let selectedTheme = THEMES[0];
+  let selectedColorId = localStorage.getItem('mushakColorId') || 'grey';
   let gameActive = false, paused = false;
   let score = 0, levelIndex = 0;
   let levelStartTime = 0;
@@ -399,6 +457,7 @@
   let playerName = localStorage.getItem('mushakPlayerName') || '';
   let profileCreated = localStorage.getItem('mushakProfileCreated') === 'true';
   let trainingCompleted = localStorage.getItem('mushakTrainingCompleted') === 'true';
+  let quizBestScore = parseInt(localStorage.getItem('mushakQuizBest') || '0', 10);
 
   let activeMushakImg = null, activeMushakPrayImg = null, activeMushakCaughtImg = null;
   let activeThemeBg = null;
@@ -438,6 +497,9 @@
   let trainingPrayDone = false;
   let trainingPowerDone = false;
 
+  // Flow lock - prevents duplicate transitions
+  let levelTransitionLock = false;
+
   const TRAINING_STEPS = [
     { text: '👆 Move with the D-pad or Arrow Keys!', hand: '👆' },
     { text: '🥟 Collect the modak when it appears!', hand: '👉' },
@@ -460,6 +522,10 @@
   const rand = (a,b) => a + Math.random()*(b-a);
   const pick = a => a[Math.floor(Math.random()*a.length)];
   const dist = (a,b,c,d) => Math.hypot(a-c,b-d);
+
+  function getSelectedColor() {
+    return MUSHAK_COLORS.find(c => c.id === selectedColorId) || MUSHAK_COLORS[0];
+  }
 
   function addParticles(x,y,color,count=8,speed=4) {
     for (let i=0;i<count;i++) {
@@ -510,25 +576,35 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  //  LEADERBOARD
+  //  LEADERBOARD (one entry per name, updated in place)
   // ═══════════════════════════════════════════════════════════
   function saveLeaderboard() { localStorage.setItem('mushakLeaderboard', JSON.stringify(leaderboard)); }
 
-  function addToLeaderboard(name, finalScore) {
+  function upsertLeaderboardEntry(name, finalScore) {
     if (!name || !name.trim()) return;
-    // Only add if score > 0
     if (finalScore <= 0) return;
-    const entry = { name: name.trim().slice(0, 16), score: finalScore, date: Date.now() };
-    leaderboard.push(entry);
+    const cleanName = name.trim().slice(0, 16);
+    const existing = leaderboard.find(e => e.name.toLowerCase() === cleanName.toLowerCase());
+    if (existing) {
+      // Only update if new score is higher, OR always update to latest
+      // Requirement: "everytime i play my score should be updated"
+      // So update to the latest score
+      existing.score = finalScore;
+      existing.date = Date.now();
+    } else {
+      leaderboard.push({ name: cleanName, score: finalScore, date: Date.now() });
+    }
+    // Sort by score desc for storage (still keeps one per name)
     leaderboard.sort((a, b) => b.score - a.score);
-    leaderboard = leaderboard.slice(0, 50);
+    // Keep max 100 unique players
+    leaderboard = leaderboard.slice(0, 100);
     saveLeaderboard();
   }
 
   function getPlayerBest() {
     if (!playerName) return 0;
-    const mine = leaderboard.filter(e => e.name === playerName);
-    return mine.length > 0 ? Math.max(...mine.map(e => e.score)) : 0;
+    const mine = leaderboard.find(e => e.name.toLowerCase() === playerName.toLowerCase());
+    return mine ? mine.score : 0;
   }
 
   function renderLeaderboard(containerId, recent = false) {
@@ -552,7 +628,7 @@
     }
     list.forEach((entry, i) => {
       const item = document.createElement('div');
-      const isYou = playerName && entry.name === playerName;
+      const isYou = playerName && entry.name.toLowerCase() === playerName.toLowerCase();
       item.className = 'lb-item' +
         (!recent && i === 0 ? ' rank-1' : !recent && i === 1 ? ' rank-2' : !recent && i === 2 ? ' rank-3' : '') +
         (isYou ? ' you' : '');
@@ -571,7 +647,6 @@
   }
 
   function updateProfileAfterLevel() {
-    // Update stats in profile
     if (score > highScore) {
       highScore = score;
       localStorage.setItem('mushakHighScore', highScore);
@@ -583,7 +658,7 @@
   function savePlayerScore() {
     if (!playerName) return;
     if (score <= 0) return;
-    addToLeaderboard(playerName, score);
+    upsertLeaderboardEntry(playerName, score);
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -613,7 +688,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  //  MODAK RAIN INTER-LEVEL MINI-GAME
+  //  MODAK RAIN
   // ═══════════════════════════════════════════════════════════
   const rainCanvas = $('modakRainCanvas');
   const rainCtx = rainCanvas ? rainCanvas.getContext('2d') : null;
@@ -625,11 +700,12 @@
   let rainAnimationId = null;
   let rainLastTime = 0;
   let rainOnComplete = null;
+  let rainTimeoutId = null;
 
   function resizeRainCanvas() {
     if (!rainCanvas) return;
-    rainCanvas.width = rainCanvas.clientWidth;
-    rainCanvas.height = rainCanvas.clientHeight;
+    rainCanvas.width = rainCanvas.clientWidth || 800;
+    rainCanvas.height = rainCanvas.clientHeight || 500;
   }
 
   function startModakRain(onComplete) {
@@ -639,15 +715,15 @@
     rainDrops = [];
     rainCaught = 0;
     rainScore = 0;
-    rainTimer = 8; // 8 seconds of modak rain
+    rainTimer = 8;
     rainLastTime = performance.now();
     modakRainOverlay.classList.remove('hidden');
     resizeRainCanvas();
 
-    $('modakRainTitle').textContent = '✨ BONUS ROUND ✨';
-    $('modakRainSub').textContent = 'Catch the falling modaks!';
+    $('modakRainTitle').textContent = '✨ MODAK RAIN ✨';
+    $('modakRainSub').textContent = 'Tap the falling modaks!';
+    $('modakRainTap').textContent = '👆 Tap modaks to collect bonus points!';
 
-    // Spawn initial drops
     for (let i = 0; i < 5; i++) spawnRainDrop();
 
     rainCanvas.addEventListener('pointerdown', handleRainClick);
@@ -693,11 +769,11 @@
         rainCaught++;
         const pts = d.isGolden ? 50 : 15;
         rainScore += pts;
-        // Visual burst
         addParticles(d.x, d.y, d.isGolden ? '#ffd56b' : '#f97316', d.isGolden ? 20 : 10, 5);
         rainDrops.splice(i, 1);
         sfxCollect();
         if (d.isGolden) sfxGolden();
+        $('modakRainCounter').textContent = `Caught: ${rainCaught} · Bonus: ${rainScore}`;
         break;
       }
     }
@@ -707,14 +783,13 @@
     if (!rainActive) return;
     const dt = Math.min(3, (now - rainLastTime) / 16.67);
     rainLastTime = now;
-    rainTimer -= dt / 60; // convert to seconds
+    rainTimer -= dt / 60;
 
     if (rainTimer <= 0) {
       endModakRain();
       return;
     }
 
-    // Update drops
     for (let i = rainDrops.length - 1; i >= 0; i--) {
       const d = rainDrops[i];
       d.y += d.vy * dt;
@@ -725,15 +800,12 @@
       }
     }
 
-    // Spawn new drops
     if (Math.random() < 0.08 * dt && rainDrops.length < 12) {
       spawnRainDrop();
     }
 
-    // Draw
     rainCtx.clearRect(0, 0, rainCanvas.width, rainCanvas.height);
-    // background subtle
-    rainCtx.fillStyle = 'rgba(10,6,18,0.4)';
+    rainCtx.fillStyle = 'rgba(10,6,18,0.35)';
     rainCtx.fillRect(0, 0, rainCanvas.width, rainCanvas.height);
 
     for (const d of rainDrops) {
@@ -751,7 +823,6 @@
       rainCtx.restore();
     }
 
-    // Timer bar
     const barW = rainCanvas.width * 0.6;
     const barX = (rainCanvas.width - barW) / 2;
     const barY = 60;
@@ -763,36 +834,227 @@
     rainCtx.lineWidth = 2;
     rainCtx.strokeRect(barX, barY, barW, 12);
 
-    // Score display
-    rainCtx.font = 'bold 20px "Comic Sans MS", cursive';
-    rainCtx.fillStyle = '#ffd56b';
-    rainCtx.textAlign = 'center';
-    rainCtx.fillText(`🥟 Caught: ${rainCaught}  ·  Bonus: +${rainScore}`, rainCanvas.width/2, rainCanvas.height - 60);
-
     rainAnimationId = requestAnimationFrame(rainLoop);
   }
 
   function endModakRain() {
+    if (!rainActive) return;
     rainActive = false;
     if (rainAnimationId) cancelAnimationFrame(rainAnimationId);
-    rainCanvas.removeEventListener('pointerdown', handleRainClick);
-    rainCanvas.removeEventListener('touchstart', handleRainTouch);
+    if (rainCanvas) {
+      rainCanvas.removeEventListener('pointerdown', handleRainClick);
+      rainCanvas.removeEventListener('touchstart', handleRainTouch);
+    }
 
-    // Apply bonus to score
     score += rainScore;
     scoreDisplay.textContent = score;
 
-    // Show result briefly
     $('modakRainTitle').textContent = '🎉 WELL DONE!';
-    $('modakRainSub').textContent = `+${rainScore} bonus points from ${rainCaught} modaks!`;
+    $('modakRainSub').textContent = `+${rainScore} bonus points!`;
     $('modakRainTap').textContent = '✨ Continuing...';
     sfxLevelComplete();
 
-    setTimeout(() => {
+    clearTimeout(rainTimeoutId);
+    rainTimeoutId = setTimeout(() => {
       modakRainOverlay.classList.add('hidden');
       $('modakRainTap').textContent = '👆 Tap modaks to collect bonus points!';
-      if (rainOnComplete) rainOnComplete();
-    }, 2500);
+      const cb = rainOnComplete;
+      rainOnComplete = null;
+      if (cb) cb();
+    }, 2200);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  //  COLOR MUSHAK MINI-GAME
+  // ═══════════════════════════════════════════════════════════
+  let tempColorId = selectedColorId;
+
+  function buildColorSwatches() {
+    const container = $('colorSwatches');
+    if (!container) return;
+    container.innerHTML = '';
+    MUSHAK_COLORS.forEach(c => {
+      const swatch = document.createElement('div');
+      swatch.className = 'color-swatch' + (c.id === tempColorId ? ' selected' : '');
+      swatch.style.background = getSwatchColor(c);
+      swatch.dataset.colorId = c.id;
+      swatch.title = c.name;
+      swatch.addEventListener('click', () => {
+        tempColorId = c.id;
+        document.querySelectorAll('.color-swatch').forEach(s => {
+          s.classList.toggle('selected', s.dataset.colorId === c.id);
+        });
+        updateColorPreview();
+        sfxClick();
+      });
+      container.appendChild(swatch);
+    });
+  }
+
+  function getSwatchColor(c) {
+    const colors = {
+      grey: 'linear-gradient(135deg, #8a8a8a, #4a4a4a)',
+      golden: 'linear-gradient(135deg, #ffd56b, #b8860b)',
+      saffron: 'linear-gradient(135deg, #ff9933, #c2410c)',
+      rose: 'linear-gradient(135deg, #f9a8d4, #be185d)',
+      violet: 'linear-gradient(135deg, #c084fc, #6d28d9)',
+      sky: 'linear-gradient(135deg, #7dd3fc, #0369a1)',
+      mint: 'linear-gradient(135deg, #6ee7b7, #047857)',
+      ember: 'linear-gradient(135deg, #f87171, #991b1b)',
+      pearl: 'linear-gradient(135deg, #f5ecd7, #d4bf94)',
+      midnight: 'linear-gradient(135deg, #475569, #0f172a)',
+      royal: 'linear-gradient(135deg, #a855f7, #4c1d95)',
+      emerald: 'linear-gradient(135deg, #34d399, #065f46)'
+    };
+    return colors[c.id] || 'linear-gradient(135deg, #8a8a8a, #4a4a4a)';
+  }
+
+  function updateColorPreview() {
+    const c = MUSHAK_COLORS.find(x => x.id === tempColorId) || MUSHAK_COLORS[0];
+    const prev = $('colorMushakPreview');
+    if (prev) {
+      prev.style.filter = c.filter;
+    }
+    $('colorNameDisplay').textContent = c.name;
+  }
+
+  function openColorGame() {
+    tempColorId = selectedColorId;
+    buildColorSwatches();
+    updateColorPreview();
+    hideAllOverlays();
+    colorOverlay.classList.remove('hidden');
+  }
+
+  function saveColorSelection() {
+    selectedColorId = tempColorId;
+    localStorage.setItem('mushakColorId', selectedColorId);
+    sfxGolden();
+    vibrate(40);
+    const btn = $('saveColorBtn');
+    btn.textContent = '✓ Saved!';
+    setTimeout(() => { btn.textContent = '💾 Save Color'; }, 1500);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  //  GANESHA QUIZ MINI-GAME
+  // ═══════════════════════════════════════════════════════════
+  let quizCurrentQ = 0;
+  let quizScore = 0;
+  let quizLocked = false;
+
+  function openQuiz() {
+    quizCurrentQ = 0;
+    quizScore = 0;
+    quizLocked = false;
+    hideAllOverlays();
+    quizOverlay.classList.remove('hidden');
+    renderQuizQuestion();
+  }
+
+  function renderQuizQuestion() {
+    quizLocked = false;
+    const q = QUIZ_QUESTIONS[quizCurrentQ];
+    $('quizQNum').textContent = `Question ${quizCurrentQ + 1} / ${QUIZ_QUESTIONS.length}`;
+    $('quizScore').textContent = quizScore;
+    $('quizEmoji').textContent = q.emoji;
+    $('quizQuestion').textContent = q.q;
+    $('quizFeedback').textContent = '';
+    $('quizFeedback').className = 'quiz-feedback';
+    $('quizNextBtn').style.display = 'none';
+
+    const prog = $('quizProgressBar');
+    prog.style.width = ((quizCurrentQ) / QUIZ_QUESTIONS.length * 100) + '%';
+
+    const container = $('quizOptions');
+    container.innerHTML = '';
+    const letters = ['A', 'B', 'C', 'D'];
+    q.options.forEach((opt, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'quiz-option';
+      btn.innerHTML = `<span class="qo-letter">${letters[i]}</span><span>${opt}</span>`;
+      btn.addEventListener('click', () => handleQuizAnswer(i, btn));
+      container.appendChild(btn);
+    });
+  }
+
+  function handleQuizAnswer(index, btn) {
+    if (quizLocked) return;
+    quizLocked = true;
+    const q = QUIZ_QUESTIONS[quizCurrentQ];
+    const allOpts = document.querySelectorAll('.quiz-option');
+    allOpts.forEach(o => o.classList.add('locked'));
+
+    if (index === q.correct) {
+      btn.classList.add('correct');
+      quizScore++;
+      $('quizScore').textContent = quizScore;
+      $('quizFeedback').textContent = '✅ Correct! ' + q.fact;
+      $('quizFeedback').className = 'quiz-feedback correct';
+      sfxGolden();
+    } else {
+      btn.classList.add('wrong');
+      allOpts[q.correct].classList.add('correct');
+      $('quizFeedback').textContent = '❌ ' + q.fact;
+      $('quizFeedback').className = 'quiz-feedback wrong';
+      sfxClick();
+    }
+
+    if (quizCurrentQ < QUIZ_QUESTIONS.length - 1) {
+      $('quizNextBtn').style.display = 'inline-block';
+      $('quizNextBtn').textContent = 'Next →';
+    } else {
+      $('quizNextBtn').style.display = 'inline-block';
+      $('quizNextBtn').textContent = '🏆 See Results';
+    }
+  }
+
+  function nextQuizQuestion() {
+    if (quizCurrentQ < QUIZ_QUESTIONS.length - 1) {
+      quizCurrentQ++;
+      renderQuizQuestion();
+    } else {
+      finishQuiz();
+    }
+  }
+
+  function finishQuiz() {
+    const prog = $('quizProgressBar');
+    prog.style.width = '100%';
+    $('quizQNum').textContent = 'Quiz Complete!';
+    $('quizEmoji').textContent = quizScore === 5 ? '🏆' : quizScore >= 3 ? '🌟' : '📿';
+    $('quizQuestion').textContent = `You scored ${quizScore} / ${QUIZ_QUESTIONS.length}`;
+    $('quizOptions').innerHTML = '';
+    $('quizFeedback').textContent =
+      quizScore === 5 ? '🕉️ Perfect! You are a true Ganesha devotee!' :
+      quizScore >= 3 ? '✨ Well done! Keep learning about Ganesha!' :
+      '📖 Good try! Explore more about Lord Ganesha!';
+    $('quizFeedback').className = 'quiz-feedback correct';
+    $('quizNextBtn').style.display = 'none';
+
+    if (quizScore > quizBestScore) {
+      quizBestScore = quizScore;
+      localStorage.setItem('mushakQuizBest', String(quizBestScore));
+    }
+    sfxLevelComplete();
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  //  LEVEL TRANSITION INTERSTITIAL
+  // ═══════════════════════════════════════════════════════════
+  function showLevelTransition(icon, title, sub, stars, nextHint, onDone) {
+    $('ltBigIcon').textContent = icon;
+    $('ltTitle').textContent = title;
+    $('ltSub').textContent = sub;
+    $('ltStars').textContent = stars;
+    $('ltNextHint').textContent = nextHint;
+    levelTransitionOverlay.classList.remove('hidden');
+
+    clearTimeout(levelTransitionOverlay._timeout);
+    levelTransitionOverlay._timeout = setTimeout(() => {
+      levelTransitionOverlay.classList.add('hidden');
+      if (onDone) onDone();
+    }, 2200);
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -839,18 +1101,6 @@
           spot.x > o.x - MODAK_BUFFER && spot.x < o.x + o.w + MODAK_BUFFER &&
           spot.y > o.y - MODAK_BUFFER && spot.y < o.y + o.h + MODAK_BUFFER)) {
           modaks.push({ x: spot.x, y: spot.y, r: 18, collected:false, bob: Math.random()*Math.PI*2 });
-        } else {
-          for (let tries=0; tries<100; tries++) {
-            const mx = rand(250, W-60), my = rand(100, H-60);
-            if (mx < safeZone.x + safeZone.w + 30) continue;
-            if (dist(mx, my, ganesh.x, ganesh.y) < 150) continue;
-            const overlapsObstacle = obstacles.some(o =>
-              mx > o.x - MODAK_BUFFER && mx < o.x + o.w + MODAK_BUFFER &&
-              my > o.y - MODAK_BUFFER && my < o.y + o.h + MODAK_BUFFER);
-            if (overlapsObstacle) continue;
-            modaks.push({ x: mx, y: my, r: 18, collected:false, bob: Math.random()*Math.PI*2 });
-            break;
-          }
         }
       }
     } else {
@@ -939,6 +1189,7 @@
   }
 
   function resetGame(startLevel = 0) {
+    levelTransitionLock = false;
     score = 0; levelIndex = startLevel;
     suspicion = 0; comboCount = 0; comboTimer = 0; prayCooldown = 0;
     ganeshSlowTimer = 0; shieldActive = false; speedBoostTimer = 0;
@@ -1069,9 +1320,7 @@
     if (trainingStep === 5 && trainingPowerDone) step = 6;
     if (trainingStep === 6) step = 7;
 
-    if (step !== trainingStep) {
-      trainingStep = step;
-    }
+    if (step !== trainingStep) trainingStep = step;
 
     if (trainingStep < TRAINING_STEPS.length) {
       trainingInstructions.classList.add('active');
@@ -1084,7 +1333,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  //  GANESH & MUSHAAK
+  //  GANESH
   // ═══════════════════════════════════════════════════════════
   let ganeshPowerCooldown = 0;
   function triggerGaneshPowerCinematic() {
@@ -1203,7 +1452,6 @@
     if ((!ganesh.isLooking || ganesh.eyeOpen < 0.2) && suspicion > 0)
       suspicion = Math.max(0, suspicion - DECAY_RATE * dt);
 
-    // Training freeze detection
     if (isTraining && trainingStep === 2 && ganesh.isLooking && ganesh.eyeOpen > 0.7) {
       if (!dx && !dy) trainingFreezeDone = true;
     }
@@ -1298,20 +1546,25 @@
     }
   }
 
+  // ═══════════════════════════════════════════════════════════
+  //  LEVEL COMPLETE FLOW (strictly sequential, no loops)
+  // ═══════════════════════════════════════════════════════════
   function checkSafeZone() {
     const inSafe = mushak.x > safeZone.x && mushak.x < safeZone.x + safeZone.w &&
                    mushak.y > safeZone.y && mushak.y < safeZone.y + safeZone.h;
     if (!inSafe) return;
 
     if (isTraining) {
-      if (trainingStep >= 7) {
+      if (trainingStep >= 7 && !levelTransitionLock) {
         completeTraining();
-      } else {
+      } else if (!levelTransitionLock) {
         addPopup(mushak.x, mushak.y-40, '👆 Complete the training steps first!', '#ffd56b', 22);
         mushak.x = safeZone.x + safeZone.w + 30;
       }
       return;
     }
+
+    if (levelTransitionLock) return;
 
     const allDone = modaks.every(m => m.collected) &&
                     (goldenModak ? goldenModak.collected : true) &&
@@ -1323,6 +1576,11 @@
       mushak.x = safeZone.x + safeZone.w + 20;
       return;
     }
+
+    // === Lock the flow ===
+    levelTransitionLock = true;
+    gameActive = false;
+
     const timeTaken = (performance.now() - levelStartTime) / 1000;
     const timeBonus = Math.max(0, Math.round(1000 - timeTaken * 5));
     score += timeBonus;
@@ -1335,59 +1593,83 @@
     suspicion = Math.max(0, suspicion - 35);
     comboCount = 0;
 
-    // Play level complete sound ONCE
+    // Single sound play
     sfxLevelComplete();
     addRipple(mushak.x, mushak.y, '#10b981', 100);
     shake(4);
     scoreBox.classList.remove('pop'); void scoreBox.offsetWidth; scoreBox.classList.add('pop');
 
-    // Update profile & save player score
+    // Update profile & save score (one entry per player, updated)
     updateProfileAfterLevel();
     savePlayerScore();
 
-    // Show cinematic banner
-    playCinematic('🎉', 'LEVEL ' + (levelIndex + 1) + ' CLEAR!', 'Stars: ' + '⭐'.repeat(stars), 2000);
+    // Hide corner menu / controls
+    topCornerMenu.classList.add('hidden');
+    dpad.classList.remove('active');
+    touchActions.classList.remove('active');
 
-    // Check if this is the last level
     const isLastLevel = levelIndex >= LEVELS.length - 1;
 
-    // After cinematic, launch Modak Rain mini-game (unless final level)
+    // Step 1: Cinematic
+    playCinematic('🎉', 'LEVEL ' + (levelIndex + 1) + ' CLEAR!', 'Stars: ' + '⭐'.repeat(stars), 2000);
+
+    // Step 2 (after 2.1s): Level transition interstitial
     setTimeout(() => {
-      if (isLastLevel) {
-        showLevelComplete(stars, timeBonus);
-      } else {
-        startModakRain(() => {
-          showLevelComplete(stars, timeBonus);
-        });
-      }
-    }, 2000);
+      showLevelTransition(
+        '🌟',
+        'LEVEL ' + (levelIndex + 1) + ' COMPLETE!',
+        `+${timeBonus} time bonus`,
+        '⭐'.repeat(stars) + '☆'.repeat(3 - stars),
+        isLastLevel ? 'Final level approaching...' : 'Mini-game coming up...',
+        () => {
+          // Step 3: mini game or level complete screen
+          if (isLastLevel) {
+            showLevelComplete(stars, timeBonus);
+          } else {
+            startModakRain(() => {
+              showLevelComplete(stars, timeBonus);
+            });
+          }
+        }
+      );
+    }, 2100);
   }
 
   function completeTraining() {
+    if (levelTransitionLock) return;
+    levelTransitionLock = true;
     isTraining = false;
     gameActive = false;
     trainingCompleted = true;
     localStorage.setItem('mushakTrainingCompleted', 'true');
+
+    topCornerMenu.classList.add('hidden');
+    dpad.classList.remove('active');
+    touchActions.classList.remove('active');
+
     sfxLevelComplete();
     shake(8);
-    playCinematic('🎓', 'TRAINING COMPLETE!', 'Mushak is ready!', 2200);
-    // Update profile after training too
     updateProfileAfterLevel();
     savePlayerScore();
+
+    playCinematic('🎓', 'TRAINING COMPLETE!', 'Mushak is ready!', 2200);
+
     setTimeout(() => {
-      $('levelCompleteTitle').textContent = '🎓 Training Complete!';
-      $('starRating').textContent = '⭐⭐⭐';
-      $('totalScore').textContent = score;
-      $('timeBonus').textContent = '+0';
-      $('levelCompleteQuip').textContent = pick(TRAINING_FUNNY_END);
-      $('nextLevelBtn').textContent = '➡ Start Level 1';
-      $('nextLevelBtn').dataset.mode = 'fromTraining';
-      levelCompleteOverlay.classList.remove('hidden');
+      showLevelTransition('🎓', 'TRAINING COMPLETE!', 'Ready for the real heist', '⭐⭐⭐', 'Starting Level 1...', () => {
+        $('levelCompleteTitle').textContent = '🎓 Training Complete!';
+        $('starRating').textContent = '⭐⭐⭐';
+        $('totalScore').textContent = score;
+        $('timeBonus').textContent = '+0';
+        $('levelCompleteQuip').textContent = pick(TRAINING_FUNNY_END);
+        $('nextLevelBtn').textContent = '➡ Start Level 1';
+        $('nextLevelBtn').dataset.mode = 'fromTraining';
+        levelCompleteOverlay.classList.remove('hidden');
+        levelTransitionLock = false;
+      });
     }, 2200);
   }
 
   function showLevelComplete(stars, timeBonus) {
-    gameActive = false;
     $('starRating').textContent = '⭐'.repeat(stars) + '☆'.repeat(3-stars);
     $('totalScore').textContent = score;
     $('timeBonus').textContent = '+' + timeBonus;
@@ -1402,32 +1684,43 @@
       highScoreDisplay.textContent = highScore;
     }
     updateProfileStats();
+    levelTransitionLock = false;
   }
 
   function nextLevel() {
+    if (levelTransitionOverlay) {
+      clearTimeout(levelTransitionOverlay._timeout);
+      levelTransitionOverlay.classList.add('hidden');
+    }
     levelCompleteOverlay.classList.add('hidden');
     const mode = $('nextLevelBtn').dataset.mode;
+
     if (mode === 'fromTraining') {
-      // Start real Level 1
       levelIndex = 0;
       score = 0;
       isTraining = false;
       trainingInstructions.classList.remove('active');
+      levelTransitionLock = false;
+
       playCinematic(LEVELS[0].icon, 'LEVEL 1', LEVELS[0].name, 1800);
       setTimeout(() => {
         resetGame(0);
+        topCornerMenu.classList.remove('hidden');
         gameActive = true; paused = false;
         if (useTouchControls) { dpad.classList.add('active'); touchActions.classList.add('active'); }
       }, 1800);
       return;
     }
+
     levelIndex++;
     if (levelIndex >= LEVELS.length) { victory(); return; }
     score += 200;
     const divine = currentDivinePower();
+    levelTransitionLock = false;
     playCinematic(LEVELS[levelIndex].icon, 'LEVEL ' + (levelIndex + 1), LEVELS[levelIndex].name, 1800);
     setTimeout(() => {
       resetGame(levelIndex);
+      topCornerMenu.classList.remove('hidden');
       gameActive = true; paused = false;
       if (useTouchControls) { dpad.classList.add('active'); touchActions.classList.add('active'); }
       setTimeout(() => {
@@ -1438,6 +1731,7 @@
 
   function victory() {
     gameActive = false;
+    levelTransitionLock = false;
     sfxLevelComplete();
     shake(10);
     playCinematic('🏆', 'VICTORY!', 'All 5 levels mastered', 2200);
@@ -1515,6 +1809,8 @@
       levelStartTime = performance.now();
       return;
     }
+    if (levelTransitionLock) return;
+    levelTransitionLock = true;
     gameActive = false;
     gamesPlayed++;
     localStorage.setItem('mushakPlays', String(gamesPlayed));
@@ -1539,6 +1835,8 @@
       addPopup(mushak.x, mushak.y-40, '🙏 Bappa is watching...', '#ffd56b', 20);
       return;
     }
+    if (levelTransitionLock) return;
+    levelTransitionLock = true;
     gameActive = false;
     gamesPlayed++;
     localStorage.setItem('mushakPlays', String(gamesPlayed));
@@ -1831,6 +2129,7 @@
   }
 
   function drawMushak(t) {
+    const colorData = getSelectedColor();
     ctx.fillStyle = 'rgba(0,0,0,0.2)';
     ctx.beginPath(); ctx.ellipse(mushak.x, mushak.y+20, 18, 6, 0, 0, Math.PI*2); ctx.fill();
     if (shieldActive) {
@@ -1864,6 +2163,8 @@
     if (speedBoostTimer > 0) {
       for (let i=1; i<=3; i++) {
         ctx.globalAlpha = 0.25/i;
+        ctx.save();
+        if (colorData.filter !== 'none') ctx.filter = colorData.filter;
         const trailImg = activeMushakImg || loadedImages.mushakLegacy;
         if (trailImg) {
           ctx.drawImage(trailImg, mushak.x - 20 - i*10, mushak.y - 20, 40, 40);
@@ -1871,6 +2172,7 @@
           ctx.font = '38px sans-serif';
           ctx.fillText(selectedChar.avatar, mushak.x - i*10, mushak.y + 12);
         }
+        ctx.restore();
       }
       ctx.globalAlpha = 1;
     }
@@ -1882,11 +2184,15 @@
     if (mushakImg) {
       ctx.save();
       ctx.shadowColor = '#1a0e2e'; ctx.shadowBlur = 10;
+      if (colorData.filter !== 'none') ctx.filter = colorData.filter;
       ctx.drawImage(mushakImg, mushak.x-25, mushak.y-25-bounce, 50, 50);
       ctx.restore();
     } else {
+      ctx.save();
+      if (colorData.filter !== 'none') ctx.filter = colorData.filter;
       ctx.font = '40px sans-serif';
       ctx.fillText(selectedChar.avatar, mushak.x-20, mushak.y+12-bounce);
+      ctx.restore();
     }
     if (shadowActive) ctx.globalAlpha = 1;
     if (emote.timer > 0) {
@@ -2129,7 +2435,7 @@
   }, { passive: false });
 
   function togglePause() {
-    if (!gameActive) return;
+    if (!gameActive || levelTransitionLock) return;
     paused = !paused;
     if (paused) {
       pauseOverlay.classList.remove('hidden');
@@ -2199,7 +2505,8 @@
     [homeOverlay, howToOverlay, profileOverlay, leaderboardOverlay, settingsOverlay,
      charOverlay, themeOverlay, startOverlay, nameOverlay, pauseOverlay,
      levelCompleteOverlay, timeOverOverlay, gameOverOverlay, victoryOverlay,
-     introOverlay, storyOverlay, modakRainOverlay].forEach(o => { if (o) o.classList.add('hidden'); });
+     introOverlay, storyOverlay, modakRainOverlay, miniGamesOverlay,
+     colorOverlay, quizOverlay, levelTransitionOverlay].forEach(o => { if (o) o.classList.add('hidden'); });
     trainingInstructions.classList.remove('active');
   }
   function showHomeScreen() {
@@ -2211,7 +2518,7 @@
     dpad.classList.remove('active');
     touchActions.classList.remove('active');
     gameActive = false; paused = false; isTraining = false;
-    // Show player name on home
+    levelTransitionLock = false;
     if (playerName) {
       $('homePlayerName').textContent = playerName;
       $('homePlayerTag').classList.remove('hidden');
@@ -2249,14 +2556,17 @@
   function updateCharPreview() {
     const c = selectedChar;
     const img = loadedImages[c.imgKey] || loadedImages.mushakLegacy;
+    const colorData = getSelectedColor();
     if (img) {
       charPreviewImg.src = img.src;
       charPreviewImg.style.display = 'block';
+      charPreviewImg.style.filter = colorData.filter;
       charPreviewAvatar.style.display = 'none';
     } else {
       charPreviewImg.style.display = 'none';
       charPreviewAvatar.style.display = 'flex';
       charPreviewAvatar.textContent = c.avatar;
+      charPreviewAvatar.style.filter = colorData.filter;
     }
     charPreviewName.textContent = c.name;
     charPreviewDesc.textContent = `${c.powerIcon} ${c.powerName} — ${c.powerDesc}`;
@@ -2298,10 +2608,16 @@
     profileTeachings.textContent = lessonsShown.size + '/12';
     profileStars.textContent = totalStars;
     profileNameInput.value = playerName || '';
-    // Level badge
     const lvl = getPlayerLevel();
     $('profileLevelBadge').textContent = `Lv. ${lvl.lv} ${lvl.name}`;
-    // Achievements
+
+    const colorData = getSelectedColor();
+    const profileAv = $('profileAvatar');
+    if (profileAv) {
+      profileAv.textContent = '🐭';
+      profileAv.style.filter = colorData.filter;
+    }
+
     const badgeGrid = $('badgeGrid');
     if (badgeGrid) {
       badgeGrid.innerHTML = '';
@@ -2391,6 +2707,25 @@
     sfxClick();
     showCharScreen();
   });
+  $('homeMiniGamesBtn').addEventListener('click', () => {
+    sfxClick();
+    hideAllOverlays();
+    miniGamesOverlay.classList.remove('hidden');
+  });
+  $('mgColorCard').addEventListener('click', () => { sfxClick(); openColorGame(); });
+  $('mgQuizCard').addEventListener('click', () => { sfxClick(); openQuiz(); });
+  $('mgRainCard').addEventListener('click', () => {
+    sfxClick();
+    hideAllOverlays();
+    startModakRain(() => { showHomeScreen(); });
+  });
+  $('closeMiniGamesBtn').addEventListener('click', () => { sfxClick(); showHomeScreen(); });
+
+  $('closeColorBtn').addEventListener('click', () => { sfxClick(); hideAllOverlays(); miniGamesOverlay.classList.remove('hidden'); });
+  $('saveColorBtn').addEventListener('click', saveColorSelection);
+  $('closeQuizBtn').addEventListener('click', () => { sfxClick(); hideAllOverlays(); miniGamesOverlay.classList.remove('hidden'); });
+  $('quizNextBtn').addEventListener('click', () => { sfxClick(); nextQuizQuestion(); });
+
   $('homeHowToBtn').addEventListener('click', () => {
     sfxClick();
     hideAllOverlays();
@@ -2506,7 +2841,8 @@
   $('resetAllBtn').addEventListener('click', () => {
     if (!confirm('Reset ALL data? Everything will be erased.')) return;
     ['mushakLeaderboard','mushakHighScore','mushakTeachings','mushakPlayerName',
-     'mushakLBVersion','mushakStars','mushakPlays','mushakProfileCreated','mushakTrainingCompleted'].forEach(k => localStorage.removeItem(k));
+     'mushakLBVersion','mushakStars','mushakPlays','mushakProfileCreated',
+     'mushakTrainingCompleted','mushakColorId','mushakQuizBest'].forEach(k => localStorage.removeItem(k));
     leaderboard = [];
     lessonsShown = new Set();
     playerName = '';
@@ -2515,6 +2851,8 @@
     gamesPlayed = 0;
     profileCreated = false;
     trainingCompleted = false;
+    selectedColorId = 'grey';
+    quizBestScore = 0;
     highScoreDisplay.textContent = '0';
     updateTeachingsHUD();
     sfxClick();
@@ -2558,9 +2896,10 @@
     appShell.classList.remove('hidden');
     topCornerMenu.classList.remove('hidden');
     gameActive = false; paused = false;
+    levelTransitionLock = false;
     totalPrayersUsed = 0; totalModaksCollected = 0; totalTimeSpent = 0;
 
-    // Only show training if never completed before (unless forced)
+    // Training only on first-ever play
     const shouldTrain = forceTraining || !trainingCompleted;
 
     isTraining = shouldTrain;
@@ -2608,6 +2947,7 @@
     paused = false;
     gameActive = false;
     isTraining = false;
+    levelTransitionLock = false;
     pauseBgMusic();
     showHomeScreen();
   });
@@ -2623,8 +2963,8 @@
     sfxClick();
     paused = false; pauseOverlay.classList.add('hidden');
     gameActive = true;
+    levelTransitionLock = false;
     totalPrayersUsed = 0; totalModaksCollected = 0; totalTimeSpent = 0;
-    // Keep training status as-is (if trainingCompleted, don't retrain)
     isTraining = !trainingCompleted;
     trainingStep = 0;
     trainingMoveDone = false;
@@ -2647,6 +2987,7 @@
     paused = false;
     gameActive = false;
     isTraining = false;
+    levelTransitionLock = false;
     pauseBgMusic();
     showHomeScreen();
   });
@@ -2659,6 +3000,7 @@
     appShell.classList.remove('hidden');
     topCornerMenu.classList.remove('hidden');
     gameActive = true; paused = false;
+    levelTransitionLock = false;
     totalPrayersUsed = 0; totalModaksCollected = 0; totalTimeSpent = 0;
     isTraining = false;
     resetGame(0);
@@ -2673,6 +3015,7 @@
     appShell.classList.remove('hidden');
     topCornerMenu.classList.remove('hidden');
     gameActive = true; paused = false;
+    levelTransitionLock = false;
     totalPrayersUsed = 0; totalModaksCollected = 0; totalTimeSpent = 0;
     isTraining = false;
     resetGame(0);
@@ -2687,6 +3030,7 @@
     appShell.classList.remove('hidden');
     topCornerMenu.classList.remove('hidden');
     gameActive = true; paused = false;
+    levelTransitionLock = false;
     totalPrayersUsed = 0; totalModaksCollected = 0; totalTimeSpent = 0;
     isTraining = false;
     resetGame(0);
@@ -2699,7 +3043,7 @@
   lpPower.addEventListener('click', () => { initAudio(); sfxClick(); activatePower(); });
 
   // ═══════════════════════════════════════════════════════════
-  //  ORIENTATION & TOUCH
+  //  ORIENTATION
   // ═══════════════════════════════════════════════════════════
   const orientationHint=$('orientationHint');
   function checkOrientation() {
@@ -2718,7 +3062,7 @@
   }, { passive: false });
 
   document.addEventListener('dblclick', (e) => {
-    if (e.target.closest('.btn, .dpad-btn, .touch-action-btn, .power-item, .char-card, .theme-card, .icon-btn, .toggle-switch, .menu-btn, .lb-tab')) {
+    if (e.target.closest('.btn, .dpad-btn, .touch-action-btn, .power-item, .char-card, .theme-card, .icon-btn, .toggle-switch, .menu-btn, .lb-tab, .minigame-card, .color-swatch, .quiz-option')) {
       e.preventDefault();
     }
   });
