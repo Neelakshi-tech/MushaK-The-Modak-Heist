@@ -1,19 +1,23 @@
 /* ═══════════════════════════════════════════════════════════
    MUSHAAK — Shadow of Ganesha
-   Main game logic — Intro music fixed version
+   Main game logic — v4.0 Championship Edition
+   Fixes: intro music, story audio, safe burst, mandatory
+   training, permanent profile, no per-level storage, no reset
    ═══════════════════════════════════════════════════════════ */
 
 (() => {
   'use strict';
 
   // ═══════════════════════════════════════════════════════════
-  //  RESET LEADERBOARD ONCE (v3 fresh)
+  //  RESET LEADERBOARD ONCE (v4 fresh — one-time migration)
   // ═══════════════════════════════════════════════════════════
-  const LB_VERSION = 'v3-fresh';
+  const LB_VERSION = 'v4-fresh';
   if (localStorage.getItem('mushakLBVersion') !== LB_VERSION) {
     localStorage.removeItem('mushakLeaderboard');
     localStorage.removeItem('mushakHighScore');
     localStorage.removeItem('mushakPlayerName');
+    localStorage.removeItem('mushakPlayerId');
+    localStorage.removeItem('mushakTrainingDone');
     localStorage.setItem('mushakLBVersion', LB_VERSION);
   }
 
@@ -84,10 +88,7 @@
   const loadSound = (k, src) => new Promise(r => {
     const a = new Audio(); a.preload='auto';
     a.oncanplaythrough = () => { loadedSounds[k]=a; r(); };
-    a.onerror = () => {
-      console.warn('❌ Sound failed to load:', src);
-      loadedSounds[k]=null; r();
-    };
+    a.onerror = () => { loadedSounds[k]=null; r(); };
     a.src = src;
     setTimeout(() => { if (!loadedSounds[k]) { loadedSounds[k]=null; r(); } }, 2500);
   });
@@ -96,8 +97,6 @@
     for (const k in IMAGES) p.push(loadImage(k, IMAGES[k]));
     for (const k in SOUNDS) p.push(loadSound(k, SOUNDS[k]));
     await Promise.all(p);
-    console.log('🎵 Loaded sounds:', Object.keys(loadedSounds).filter(k => loadedSounds[k]));
-    console.log('❌ Missing sounds:', Object.keys(loadedSounds).filter(k => !loadedSounds[k]));
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -105,7 +104,7 @@
   // ═══════════════════════════════════════════════════════════
   let bgMusic = null, introMusic = null;
   let audioCtx = null, audioPrimed = false;
-  let introMusicUnlockPending = false; // ← if autoplay was blocked, queue it
+  let introMusicUnlockPending = false;
 
   function initAudio() {
     if (!audioCtx) {
@@ -114,7 +113,6 @@
     if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
   }
 
-  // Unlock ALL audio on the first user interaction
   function primeAudio() {
     if (audioPrimed) return;
     audioPrimed = true;
@@ -128,8 +126,6 @@
         source.start(0);
       }
     } catch(e) {}
-
-    // ▶ If intro music was queued while blocked, play it now
     if (introMusicUnlockPending) {
       introMusicUnlockPending = false;
       tryPlayIntroMusic();
@@ -140,153 +136,112 @@
     window.addEventListener(evt, primeAudio, { once: false, passive: true });
   });
 
-  // ═══════════════════════════════════════════════════════════
-  //  SOUND PLAYERS
-  // ═══════════════════════════════════════════════════════════
+  // ── SFX players ──
   function sfxClick() {
     if (!settings.sfx) return;
-    const s = loadedSounds.click;
-    if (!s) return;
-    try {
-      const c = s.cloneNode();
-      c.volume = masterVolume(0.55);
-      c.play().catch(()=>{});
-    } catch(e) {}
+    const s = loadedSounds.click; if (!s) return;
+    try { const c = s.cloneNode(); c.volume = masterVolume(0.55); c.play().catch(()=>{}); } catch(e) {}
   }
-
   function sfxCollect() {
     if (!settings.sfx) return;
-    const s = loadedSounds.collect;
-    if (!s) return;
-    try {
-      const c = s.cloneNode();
-      c.volume = masterVolume(0.7);
-      c.play().catch(()=>{});
-    } catch(e) {}
+    const s = loadedSounds.collect; if (!s) return;
+    try { const c = s.cloneNode(); c.volume = masterVolume(0.7); c.play().catch(()=>{}); } catch(e) {}
   }
-
   function sfxGolden() {
     if (!settings.sfx) return;
-    const s = loadedSounds.golden;
-    if (!s) return;
-    try {
-      const c = s.cloneNode();
-      c.volume = masterVolume(0.85);
-      c.play().catch(()=>{});
-    } catch(e) {}
+    const s = loadedSounds.golden; if (!s) return;
+    try { const c = s.cloneNode(); c.volume = masterVolume(0.85); c.play().catch(()=>{}); } catch(e) {}
   }
-
+  // ← FIX #4: safe sound plays ONCE, never loops
   function sfxSafe() {
     if (!settings.sfx) return;
-    const s = loadedSounds.safe;
-    if (!s) return;
+    const s = loadedSounds.safe; if (!s) return;
     try {
       const c = s.cloneNode();
+      c.loop = false;
       c.volume = masterVolume(0.8);
-      c.play().catch(()=>{});
+      c.play().then(() => {
+        setTimeout(() => { try { c.pause(); } catch(e){} }, 2500);
+      }).catch(()=>{});
     } catch(e) {}
   }
-
   function sfxLevelComplete() {
     if (!settings.sfx) return;
-    const s = loadedSounds.levelcomplete;
-    if (!s) return;
-    try {
-      const c = s.cloneNode();
-      c.volume = masterVolume(0.85);
-      c.play().catch(()=>{});
-    } catch(e) {}
+    const s = loadedSounds.levelcomplete; if (!s) return;
+    try { const c = s.cloneNode(); c.loop = false; c.volume = masterVolume(0.85); c.play().catch(()=>{}); } catch(e) {}
   }
-
   function sfxPowerup() {
     if (!settings.sfx) return;
-    const s = loadedSounds.poweup;
-    if (!s) return;
-    try {
-      const c = s.cloneNode();
-      c.volume = masterVolume(0.85);
-      c.play().catch(()=>{});
-    } catch(e) {}
+    const s = loadedSounds.poweup; if (!s) return;
+    try { const c = s.cloneNode(); c.volume = masterVolume(0.85); c.play().catch(()=>{}); } catch(e) {}
   }
-
   function sfxStart() {
     if (!settings.sfx) return;
-    const s = loadedSounds.start;
-    if (!s) return;
-    try {
-      const c = s.cloneNode();
-      c.volume = masterVolume(0.8);
-      c.play().catch(()=>{});
-    } catch(e) {}
+    const s = loadedSounds.start; if (!s) return;
+    try { const c = s.cloneNode(); c.volume = masterVolume(0.8); c.play().catch(()=>{}); } catch(e) {}
   }
 
-  // ═══════════════════════════════════════════════════════════
-  //  MUSIC LAYERS
-  // ═══════════════════════════════════════════════════════════
-
-  // Background gameplay music
+  // ── Background music ──
   function startBgMusic() {
     if (!settings.music) return;
-    const m = loadedSounds.bgmusic;
-    if (!m) return;
-    if (!bgMusic) {
-      bgMusic = m.cloneNode();
-      bgMusic.loop = true;
-    }
+    const m = loadedSounds.bgmusic; if (!m) return;
+    if (!bgMusic) { bgMusic = m.cloneNode(); bgMusic.loop = true; }
     bgMusic.volume = masterVolume(0.28);
     bgMusic.play().catch(()=>{});
   }
   function pauseBgMusic() { if (bgMusic) { try { bgMusic.pause(); } catch(e){} } }
   function resumeBgMusic() {
     if (!settings.music) return;
-    if (bgMusic) {
-      bgMusic.volume = masterVolume(0.28);
-      bgMusic.play().catch(()=>{});
-    }
+    if (bgMusic) { bgMusic.volume = masterVolume(0.28); bgMusic.play().catch(()=>{}); }
   }
   function stopBgMusic() {
     if (bgMusic) { try { bgMusic.pause(); bgMusic.currentTime = 0; } catch(e){} }
   }
 
-  // ─────────────────────────────────────────────────────────
-  //  INTRO MUSIC — plays during title animation
-  //  Handles browser autoplay blocking gracefully
-  // ─────────────────────────────────────────────────────────
+  // ═══════════════════════════════════════════════════════════
+  //  INTRO MUSIC — FIX #2 (robust retry, no loop)
+  // ═══════════════════════════════════════════════════════════
   function tryPlayIntroMusic() {
     if (!settings.music) return false;
     const m = loadedSounds.intromusic;
-    if (!m) {
-      console.warn('❌ intromusic.mp3 not loaded — check: sounds/intromusic.mp3');
-      return false;
-    }
+    if (!m) { console.warn('❌ intromusic.mp3 not loaded'); return false; }
     if (!introMusic) {
       introMusic = m.cloneNode();
-      introMusic.loop = true;
+      introMusic.loop = false;
+      introMusic.volume = masterVolume(0.55);
     }
-    introMusic.volume = masterVolume(0.55);
     try {
+      introMusic.currentTime = 0;
       const promise = introMusic.play();
       if (promise && typeof promise.then === 'function') {
         promise.then(() => {
           console.log('✅ intromusic playing');
+          introMusicUnlockPending = false;
         }).catch(() => {
-          console.warn('🔇 intromusic autoplay blocked — will play on next tap');
+          console.warn('🔇 intromusic blocked — queued for next tap');
           introMusicUnlockPending = true;
+          const retry = () => {
+            if (!introMusicUnlockPending) return;
+            tryPlayIntroMusic();
+            window.removeEventListener('pointerdown', retry);
+            window.removeEventListener('touchstart', retry);
+            window.removeEventListener('keydown', retry);
+          };
+          window.addEventListener('pointerdown', retry, { once: true });
+          window.addEventListener('touchstart', retry, { once: true });
+          window.addEventListener('keydown', retry, { once: true });
         });
       }
       return true;
     } catch(e) {
-      console.warn('🔇 intromusic play() failed:', e);
       introMusicUnlockPending = true;
       return false;
     }
   }
-
   function startIntroMusic() {
     introMusicUnlockPending = false;
     tryPlayIntroMusic();
   }
-
   function stopIntroMusic() {
     if (!introMusic) return;
     introMusicUnlockPending = false;
@@ -312,12 +267,10 @@
   function requestFullscreen() {
     try {
       const el = document.documentElement;
-      const isFs = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+      const isFs = document.fullscreenElement || document.webkitFullscreenElement;
       if (isFs) return;
       if (el.requestFullscreen) el.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
       else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-      else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
-      else if (el.msRequestFullscreen) el.msRequestFullscreen();
     } catch(e) {}
   }
 
@@ -345,6 +298,7 @@
   const victoryOverlay=$('victoryOverlay');
   const introOverlay=$('introOverlay');
   const storyOverlay=$('storyOverlay');
+  const trainingOverlay=$('trainingOverlay');
   const appShell=$('appShell');
   const topCornerMenu=$('topCornerMenu');
 
@@ -505,6 +459,10 @@
   // ═══════════════════════════════════════════════════════════
   //  STATE
   // ═══════════════════════════════════════════════════════════
+  // ← FIX #1: training gate flags
+  let trainingCompleted = JSON.parse(localStorage.getItem('mushakTrainingDone') ?? 'false');
+  let trainingActive = false;
+
   let selectedChar = CHARACTERS[0];
   let selectedTheme = THEMES[0];
   let gameActive = false, paused = false;
@@ -612,14 +570,37 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  //  LEADERBOARD
+  //  LEADERBOARD — FIX #6: permanent player ID
   // ═══════════════════════════════════════════════════════════
+  function getPlayerId() {
+    let id = localStorage.getItem('mushakPlayerId');
+    if (!id) {
+      id = 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+      localStorage.setItem('mushakPlayerId', id);
+    }
+    return id;
+  }
+
   function saveLeaderboard() { localStorage.setItem('mushakLeaderboard', JSON.stringify(leaderboard)); }
 
   function addToLeaderboard(name, finalScore) {
     if (!name || !name.trim()) return;
-    const entry = { name: name.trim().slice(0, 16), score: finalScore, date: Date.now() };
-    leaderboard.push(entry);
+    const id = getPlayerId();
+    const existing = leaderboard.find(e => e.id === id);
+    if (existing) {
+      if (finalScore > existing.score) {
+        existing.score = finalScore;
+        existing.name = name.trim().slice(0, 16);
+        existing.date = Date.now();
+      }
+    } else {
+      leaderboard.push({
+        id,
+        name: name.trim().slice(0, 16),
+        score: finalScore,
+        date: Date.now()
+      });
+    }
     leaderboard.sort((a, b) => b.score - a.score);
     leaderboard = leaderboard.slice(0, 10);
     saveLeaderboard();
@@ -636,9 +617,10 @@
       container.appendChild(empty);
       return;
     }
+    const myId = getPlayerId();
     leaderboard.forEach((entry, i) => {
       const item = document.createElement('div');
-      const isYou = playerName && entry.name === playerName && entry.score === score;
+      const isYou = entry.id === myId;
       item.className = 'lb-item' +
         (i === 0 ? ' rank-1' : i === 1 ? ' rank-2' : i === 2 ? ' rank-3' : '') +
         (isYou ? ' you' : '');
@@ -678,6 +660,20 @@
     powerFlash.classList.remove('play');
     void powerFlash.offsetWidth;
     powerFlash.classList.add('play');
+  }
+
+  // ← FIX #5: Safe-zone burst animation
+  function safeZoneBurst(x, y) {
+    shake(8);
+    addRipple(x, y, '#ffd56b', 130);
+    setTimeout(() => addRipple(x, y, '#ff9933', 170), 120);
+    setTimeout(() => addRipple(x, y, '#f5ecd7', 210), 240);
+    addParticles(x, y, '#ffd56b', 24, 8);
+    setTimeout(() => addParticles(x, y, '#ff9933', 18, 9), 100);
+    setTimeout(() => addParticles(x, y, '#f5ecd7', 24, 10), 220);
+    addPopup(x, y - 40, '🌟 SAFE!', '#ffd56b', 36);
+    addPopupShort(x, y - 70, '⭐'.repeat(3), '#fff9e6', 30);
+    playDivineFlash();
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -1109,13 +1105,16 @@
     comboCount = 0;
     sfxSafe();
     setTimeout(() => { sfxLevelComplete(); }, 350);
-    addRipple(mushak.x, mushak.y, '#10b981', 100);
-    shake(4);
+    // ← FIX #5: new burst animation
+    safeZoneBurst(mushak.x, mushak.y);
+    setTimeout(() => {
+      playCinematic('🎉', 'LEVEL ' + (levelIndex + 1) + ' CLEAR!', 'Stars: ' + '⭐'.repeat(stars), 2000);
+    }, 400);
     scoreBox.classList.remove('pop'); void scoreBox.offsetWidth; scoreBox.classList.add('pop');
-    playCinematic('🎉', 'LEVEL ' + (levelIndex + 1) + ' CLEAR!', 'Stars: ' + '⭐'.repeat(stars), 2000);
     setTimeout(() => { showLevelComplete(stars, timeBonus); }, 2000);
   }
 
+  // ← FIX #7: no per-level high-score save
   function showLevelComplete(stars, timeBonus) {
     gameActive = false;
     $('starRating').textContent = '⭐'.repeat(stars) + '☆'.repeat(3-stars);
@@ -1124,11 +1123,7 @@
     $('levelCompleteQuip').textContent = pick(FUNNY_LEVEL_CLEAR);
     $('levelCompleteTitle').textContent = pick(['🎉 Level Clear!', '🌟 Well Done!', '✨ Shabash!', '🎊 Smooth!']);
     levelCompleteOverlay.classList.remove('hidden');
-    if (score > highScore) {
-      highScore = score;
-      localStorage.setItem('mushakHighScore', highScore);
-      highScoreDisplay.textContent = highScore;
-    }
+    // NOTE: high-score save intentionally removed here — only saved on game over / time over / victory
   }
 
   function nextLevel() {
@@ -1222,6 +1217,11 @@
     gameActive = false;
     gamesPlayed++;
     localStorage.setItem('mushakPlays', String(gamesPlayed));
+    if (score > highScore) {
+      highScore = score;
+      localStorage.setItem('mushakHighScore', highScore);
+      highScoreDisplay.textContent = highScore;
+    }
     timeOverScore.textContent = score;
     timeOverLevel.textContent = (levelIndex + 1);
     timeOverQuip.textContent = pick(FUNNY_TIME_OVER);
@@ -1736,6 +1736,10 @@
   // ═══════════════════════════════════════════════════════════
   let lastT = performance.now();
   function loop(t) {
+          // ← Training runs its own update first
+    if (trainingActive && Training.active) {
+        Training.update(dt);
+    }
     const dt = Math.min(3, (t - lastT)/16.67);
     lastT = t;
     if (gameActive && !paused) {
@@ -1803,6 +1807,7 @@
     const a = keyToAction(e.key);
     if (a) {
       e.preventDefault();
+      if (trainingActive) return; // training module handles its own keys
       if (a === 'space') { if (!keys.space) prayAction(); keys.space = true; }
       else if (a === 'shift') { if (!keys.shift) activatePower(); keys.shift = true; }
       else keys[a] = true;
@@ -1837,6 +1842,7 @@
       const press = (e) => {
         e.preventDefault(); e.stopPropagation();
         initAudio();
+        if (trainingActive) return; // training module handles
         keys[dir] = true;
         btn.classList.add('pressed');
         vibrate(10);
@@ -1850,9 +1856,6 @@
       btn.addEventListener('pointerup', release);
       btn.addEventListener('pointerleave', release);
       btn.addEventListener('pointercancel', release);
-      btn.addEventListener('touchstart', press, { passive: false });
-      btn.addEventListener('touchend', release);
-      btn.addEventListener('touchcancel', release);
       btn.addEventListener('contextmenu', e => e.preventDefault());
     });
     window.addEventListener('pointerup', () => {
@@ -1868,6 +1871,7 @@
     const handler = (e) => {
       e.preventDefault(); e.stopPropagation();
       initAudio();
+      if (trainingActive) return; // training module handles
       action();
       vibrate(20);
     };
@@ -1879,13 +1883,429 @@
   bindTouchAction(taPower, () => activatePower());
 
   // ═══════════════════════════════════════════════════════════
+  //  TRAINING GROUNDS — FIX #9 (mandatory Level 0)
+  // ═══════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════
+//  TRAINING GROUNDS — Level 0 (plays on the real game canvas)
+//  Copy of Level 1 with huge instructions. Player never loses.
+// ═══════════════════════════════════════════════════════════
+const Training = {
+  active: false,
+  step: 0,
+  done: false,
+
+  // Training-specific state (doesn't touch campaign state)
+  tPlayer: null,
+  tModaks: [],
+  tSafe: { x: 700, y: 420, r: 55 },
+  tGanesh: { x: 620, y: 90, eyeOpen: 0, isLooking: false, lookTimer: 0 },
+  tSuspicion: 0,
+  tTime: 90,               // countdown display, but never triggers loss
+  tCollected: 0,
+  bannerEl: null,
+  handEl: null,
+
+  // Step definitions — each step has: banner text, hand target, completion check
+  // order: suspicion → timer → move → collect → pray → safe
+  STEPS: [
+    {
+      id: 'welcome',
+      banner: '🕉️ WELCOME TO TRAINING! Watch the <b>SUSPICION BAR</b> at the top — it fills if Ganesh Ji sees you moving. 🙏',
+      hand: 'suspicion',
+      completeOn: 'time',       // auto-advance after 3.5s
+      hold: 3.5
+    },
+    {
+      id: 'timer',
+      banner: '⏱️ See this <b>TIMER</b>? In real levels it counts down. Collect modaks before time runs out!',
+      hand: 'timer',
+      completeOn: 'time',
+      hold: 3.5
+    },
+    {
+      id: 'move',
+      banner: '👆 MOVE Mushak! Use <b>WASD / Arrows</b> on keyboard, or the <b>D-pad</b> on mobile.',
+      hand: 'dpad',
+      completeOn: 'move'
+    },
+    {
+      id: 'eyes',
+      banner: '👀 When Ganesh Ji\'s eyes are <b>OPEN</b> — STOP! When <b>CLOSED</b> — MOVE! Watch the eyes on Ganesh.',
+      hand: 'ganesh',
+      completeOn: 'waitEyes',   // complete after one full open→close cycle
+      hold: 6
+    },
+    {
+      id: 'collect',
+      banner: '🥟 A modak appeared! Walk over it to collect. Collect <b>3 modaks</b> to continue.',
+      hand: 'player',
+      completeOn: 'collect3'
+    },
+    {
+      id: 'pray',
+      banner: '🙏 Press <b>SPACE</b> (or tap the <b>PRAY</b> button) to pray and lower suspicion.',
+      hand: 'pray',
+      completeOn: 'pray'
+    },
+    {
+      id: 'safe',
+      banner: '🏠 Perfect! Now reach the <b>SAFE ZONE</b> (green house, top-left) — you did it!',
+      hand: 'safe',
+      completeOn: 'safe'
+    }
+  ],
+
+  stepTimer: 0,      // counts up while a time-based step is active
+  eyesCycleDone: false,
+
+  start() {
+    this.active = true;
+    this.done = false;
+    this.step = 0;
+    this.stepTimer = 0;
+    this.eyesCycleDone = false;
+    this.tSuspicion = 0;
+    this.tTime = 90;
+    this.tCollected = 0;
+
+    // Reset the campaign world for a fresh level-1-style start
+    score = 0; levelIndex = 0;
+    suspicion = 0; comboCount = 0; comboTimer = 0; prayCooldown = 0;
+    ganeshSlowTimer = 0; shieldActive = false; speedBoostTimer = 0;
+    slowMo = 0; newBatchNotice = 0; buddhiSlowTimer = 0;
+    powerCooldown = 0; powerActiveTimer = 0;
+    shadowActive = false; midasActive = false;
+    mushak.speed = selectedChar.speed; mushak.baseSpeed = selectedChar.speed;
+    mushak.hits = 0;
+    mushak.x = 130; mushak.y = 400;
+    ganesh.isLooking = false; ganesh.eyeOpen = 0; ganesh.lookTimer = 0;
+    ganesh.lookDuration = 70; ganesh.lookCooldown = 110;
+    ganesh.divineFlashTimer = 0;
+    particles = []; popups = []; ripples = [];
+    emote = { text:'', timer:0 };
+    screenShake = 0;
+
+    // Load images for the selected character / theme (same as a real level)
+    activeMushakImg = loadedImages[selectedChar.imgKey] || loadedImages.mushakLegacy;
+    activeMushakPrayImg = loadedImages[selectedChar.prayKey] || loadedImages.mushakPrayLegacy || activeMushakImg;
+    activeMushakCaughtImg = loadedImages[selectedChar.caughtKey] || loadedImages.mushakCaughtLegacy || activeMushakImg;
+    activeThemeBg = loadedImages[selectedTheme.bgKey] || loadedImages.bgLegacy;
+
+    // Build obstacles — same look as level 1 (uses obstacle.png)
+    obstacles = [];
+    const obsLayout = [
+      { x: 340, y: 180, w: 60, h: 45 },
+      { x: 480, y: 300, w: 55, h: 50 }
+    ];
+    for (const o of obsLayout) {
+      obstacles.push({ x: o.x, y: o.y, w: o.w, h: o.h, wobble: Math.random()*Math.PI*2 });
+    }
+
+    // No modaks yet — they spawn per-step
+    modaks = []; goldenModak = null; powerUps = []; blessingFlowers = []; divineBarriers = [];
+
+    // Show HUD
+    appShell.classList.remove('hidden');
+    topCornerMenu.classList.remove('hidden');
+    divineIndicator.style.display = 'none';
+    updateLevelName();
+    updateLevelDots();
+    updateTeachingsHUD();
+    lpPowerIcon.textContent = selectedChar.powerIcon;
+    lpPowerName.textContent = selectedChar.powerName.replace(/^[^\s]+\s/,'');
+    taPowerIcon.textContent = selectedChar.powerIcon;
+
+    // Show touch controls if mobile
+    if (useTouchControls) {
+      dpad.classList.add('active');
+      touchActions.classList.add('active');
+    }
+
+    // Show the training banner + hand
+    this.showBanner();
+    this.showHand();
+    this.updateBanner();
+
+    trainingActive = true;
+    gameActive = true; paused = false;
+
+    playCinematic('🎓', 'TRAINING', 'Level 0 — Learn the ropes', 1800);
+  },
+
+  // Called each frame from the main loop when trainingActive is true
+  update(dt) {
+    if (!this.active) return;
+
+    // Training suspicion — same as real level 1, but never hits max
+    if (ganesh.isLooking && ganesh.eyeOpen > 0.4) {
+      const moving = keys.up || keys.down || keys.left || keys.right;
+      if (moving) {
+        suspicion += SUSPICION_BASE * 0.6 * dt;
+      } else {
+        suspicion += 0.5 * dt;
+      }
+      if (suspicion > 85) suspicion = 85;   // cap for training — never caught
+    } else {
+      suspicion = Math.max(0, suspicion - DECAY_RATE * dt);
+    }
+    updateUI();
+
+    // Handle current step
+    const s = this.STEPS[this.step];
+    if (!s) return;
+
+    if (s.completeOn === 'time') {
+      this.stepTimer += dt / 60;
+      if (this.stepTimer >= (s.hold || 3.5)) this.advanceStep();
+    }
+
+    if (s.completeOn === 'move') {
+      if (keys.up || keys.down || keys.left || keys.right) {
+        this.advanceStep();
+      }
+    }
+
+    if (s.completeOn === 'waitEyes') {
+      this.stepTimer += dt / 60;
+      // detect one full eye cycle: eyes open AND eyes closed afterwards
+      if (ganesh.isLooking && ganesh.eyeOpen > 0.7) this.eyesCycleDone = true;
+      if (this.eyesCycleDone && !ganesh.isLooking && ganesh.eyeOpen < 0.2) {
+        this.advanceStep();
+      }
+      if (this.stepTimer > 12) this.advanceStep();  // safety timeout
+    }
+
+    if (s.completeOn === 'collect3') {
+      if (this.tCollected >= 3) this.advanceStep();
+    }
+
+    if (s.completeOn === 'pray') {
+      if (prayCooldown > 0) this.advanceStep();
+    }
+
+    if (s.completeOn === 'safe') {
+      const inSafe = mushak.x > safeZone.x && mushak.x < safeZone.x + safeZone.w &&
+                     mushak.y > safeZone.y && mushak.y < safeZone.y + safeZone.h;
+      if (inSafe) this.advanceStep();
+    }
+  },
+
+  advanceStep() {
+    if (this.done) return;
+    this.step++;
+    this.stepTimer = 0;
+    this.eyesCycleDone = false;
+
+    if (this.step >= this.STEPS.length) {
+      this.finish();
+      return;
+    }
+
+    // Step-specific side effects
+    const next = this.STEPS[this.step];
+
+    // Spawn modaks when we reach the collect step
+    if (next.completeOn === 'collect3') {
+      modaks = [
+        { x: 260, y: 200, r: 18, collected: false, bob: 0 },
+        { x: 430, y: 340, r: 18, collected: false, bob: 1.2 },
+        { x: 580, y: 160, r: 18, collected: false, bob: 2.4 }
+      ];
+      this.tCollected = 0;
+      sfxCollect();
+    }
+
+    // Move the safe zone only matters at safe step — leave as-is
+
+    this.updateBanner();
+    this.updateHand();
+    sfxClick();
+    vibrate(20);
+
+    // Replay sound cue for each new step
+    playCinematic('👉', 'STEP ' + this.step + ' / ' + (this.STEPS.length - 1), next.banner.replace(/<[^>]+>/g,'').slice(0, 40) + '…', 1200);
+  },
+
+  // Count modaks collected (called from collectModaks when in training)
+  onModakCollected() {
+    this.tCollected++;
+  },
+
+  // Player can't lose in training — gameOver/timeOver are suppressed
+  onWouldLose() {
+    // reset suspicion back down instead of ending the game
+    suspicion = 20;
+    addPopup(mushak.x, mushak.y - 40, '😇 Training — you\'re safe!', '#10b981', 22);
+  },
+
+  // ── UI: banner (huge, bottom of screen) ──
+  showBanner() {
+    let el = document.getElementById('trainingBanner');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'trainingBanner';
+      el.className = 'training-banner';
+      document.body.appendChild(el);
+    }
+    el.classList.remove('hidden');
+  },
+
+  updateBanner() {
+    const el = document.getElementById('trainingBanner');
+    if (!el) return;
+    const s = this.STEPS[this.step];
+    if (!s) return;
+    const num = this.step === 0 ? '' : `${this.step}/${this.STEPS.length - 1}`;
+    el.innerHTML = `
+      <div class="tb-top">
+        <span class="tb-badge">🎓 TRAINING${num ? ' · ' + num : ''}</span>
+        <span class="tb-skip" id="tbSkipBtn">Skip Training ▶</span>
+      </div>
+      <div class="tb-text">${s.banner}</div>
+    `;
+    const skip = document.getElementById('tbSkipBtn');
+    if (skip) skip.onclick = (e) => { e.stopPropagation(); this.skip(); };
+  },
+
+  hideBanner() {
+    const el = document.getElementById('trainingBanner');
+    if (el) el.classList.add('hidden');
+  },
+
+  // ── UI: pointing hand ──
+  showHand() {
+    let el = document.getElementById('trainingHand');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'trainingHand';
+      el.className = 'tutorial-hand';
+      el.textContent = '☝️';
+      document.body.appendChild(el);
+    }
+    el.classList.remove('hidden');
+  },
+
+  updateHand() {
+    const el = document.getElementById('trainingHand');
+    if (!el) return;
+    const s = this.STEPS[this.step];
+    if (!s) { el.classList.add('hidden'); return; }
+
+    let rect = null;
+    switch (s.hand) {
+      case 'suspicion': rect = suspicionBar.getBoundingClientRect(); break;
+      case 'timer':     rect = timerBox.getBoundingClientRect();     break;
+      case 'dpad':      rect = dpad.getBoundingClientRect();         break;
+      case 'pray':      rect = taPray.getBoundingClientRect();       break;
+      case 'safe':      rect = canvas.getBoundingClientRect();       break;
+      case 'player':    rect = canvas.getBoundingClientRect();       break;
+      case 'ganesh':    rect = canvas.getBoundingClientRect();       break;
+    }
+    if (!rect) return;
+
+    let tx, ty;
+    if (s.hand === 'safe') {
+      tx = rect.left + rect.width * 0.09;   // safe zone is top-left of canvas
+      ty = rect.top  + rect.height * 0.18;
+    } else if (s.hand === 'player' || s.hand === 'ganesh') {
+      tx = rect.left + rect.width * 0.5;
+      ty = rect.top  + rect.height * 0.5;
+    } else {
+      tx = rect.left + rect.width  * 0.5;
+      ty = rect.bottom + 20;
+    }
+    el.style.left = (tx - 22) + 'px';
+    el.style.top  = (ty - 22) + 'px';
+  },
+
+  // Called when player prays during training
+  onPray() {
+    if (this.STEPS[this.step] && this.STEPS[this.step].completeOn === 'pray') {
+      this.advanceStep();
+    }
+  },
+
+  // Player pressed skip → mark training done but don't show "complete" message
+  skip() {
+    if (this.done) return;
+    this.done = true;
+    this.active = false;
+    trainingCompleted = true;
+    localStorage.setItem('mushakTrainingDone', 'true');
+    this.cleanup();
+    sfxClick();
+    showHomeScreen();
+  },
+
+  finish() {
+    if (this.done) return;
+    this.done = true;
+    this.active = false;
+    trainingCompleted = true;
+    localStorage.setItem('mushakTrainingDone', 'true');
+
+    sfxLevelComplete();
+    vibrate([40, 60, 40, 60, 40]);
+    safeZoneBurst(mushak.x, mushak.y);
+
+    const jokes = [
+      '🐭 "I passed training! Ganesh Ji, here I come — modaks beware!"',
+      '🐭 "Certified heist mouse. Bappa signed the certificate himself!"',
+      '🐭 "I learned to sneak, pray, and steal modaks. All in one day!"',
+      '🐭 "Training complete! My tail is officially certified ninja-grade!"',
+      '🐭 "If modak-stealing was a subject, I just topped the class!"'
+    ];
+    const joke = jokes[Math.floor(Math.random() * jokes.length)];
+
+    setTimeout(() => {
+      playCinematic('🎓', 'TRAINING COMPLETE!', 'You\'re ready for the real heist', 2400);
+    }, 200);
+
+    setTimeout(() => {
+      this.cleanup();
+      // Show a cute completion overlay with the funny message
+      const el = document.createElement('div');
+      el.className = 'overlay';
+      el.id = 'trainingDoneOverlay';
+      el.innerHTML = `
+        <div class="overlay-card">
+          <div class="big-emoji">🎓🐭✨</div>
+          <h1>Training Complete!</h1>
+          <div class="funny-quip">${joke}</div>
+          <p class="result-line">You learned: <b>Suspicion</b> · <b>Timer</b> · <b>Movement</b> · <b>Eyes</b> · <b>Modaks</b> · <b>Pray</b> · <b>Safe Zone</b></p>
+          <div class="flex-row">
+            <button class="btn" id="trainingDoneBtn">🎮 Start Level 1!</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(el);
+      document.getElementById('trainingDoneBtn').onclick = () => {
+        el.remove();
+        sfxClick();
+        // Go straight to character select for the real campaign
+        showCharScreen();
+      };
+    }, 2600);
+  },
+
+  cleanup() {
+    this.hideBanner();
+    const hand = document.getElementById('trainingHand');
+    if (hand) hand.classList.add('hidden');
+    trainingActive = false;
+    gameActive = false;
+  }
+};
+  // ═══════════════════════════════════════════════════════════
   //  SCREEN FLOW
   // ═══════════════════════════════════════════════════════════
   function hideAllOverlays() {
     [homeOverlay, howToOverlay, profileOverlay, leaderboardOverlay, settingsOverlay,
      charOverlay, themeOverlay, startOverlay, nameOverlay, pauseOverlay,
      levelCompleteOverlay, timeOverOverlay, gameOverOverlay, victoryOverlay,
-     introOverlay, storyOverlay].forEach(o => { if (o) o.classList.add('hidden'); });
+     introOverlay, storyOverlay, trainingOverlay].forEach(o => { if (o) o.classList.add('hidden'); });
+    const hand = document.getElementById('trainingHand');
+    if (hand) hand.classList.add('hidden');
   }
   function showHomeScreen() {
     hideAllOverlays();
@@ -1919,6 +2339,11 @@
     nameOverlay.classList.remove('hidden');
     startNameInput.value = playerName || '';
     setTimeout(() => { try { startNameInput.focus(); } catch(e){} }, 200);
+  }
+  function showTrainingScreen() {
+    hideAllOverlays();
+    trainingOverlay.classList.remove('hidden');
+    Training.start();
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -2043,6 +2468,11 @@
     try { initAudio(); } catch(e){}
     try { requestFullscreen(); } catch(e){}
     sfxClick();
+    // ← FIX #10: hard gate — training must be done first
+    if (!trainingCompleted) {
+      showTrainingScreen();
+      return;
+    }
     showCharScreen();
   });
   $('homeHowToBtn').addEventListener('click', () => {
@@ -2100,6 +2530,7 @@
     }
     playerName = name.slice(0, 16);
     localStorage.setItem('mushakPlayerName', playerName);
+    getPlayerId(); // ensure ID exists
     sfxGolden();
     vibrate(40);
     const btn = $('saveProfileBtn');
@@ -2143,34 +2574,7 @@
     if (introMusic) introMusic.volume = masterVolume(0.55);
   });
 
-  $('resetLeaderboardBtn').addEventListener('click', () => {
-    if (!confirm('Reset the leaderboard? This cannot be undone.')) return;
-    leaderboard = [];
-    saveLeaderboard();
-    renderLeaderboard('leaderboardList');
-    renderLeaderboard('victoryLeaderboardList');
-    renderLeaderboard('timeOverLeaderboard');
-    renderLeaderboard('homeLeaderboardList');
-    sfxClick();
-    vibrate(40);
-  });
-
-  $('resetAllBtn').addEventListener('click', () => {
-    if (!confirm('Reset ALL data? Everything will be erased.')) return;
-    ['mushakLeaderboard','mushakHighScore','mushakTeachings','mushakPlayerName',
-     'mushakLBVersion','mushakStars','mushakPlays'].forEach(k => localStorage.removeItem(k));
-    leaderboard = [];
-    lessonsShown = new Set();
-    playerName = '';
-    highScore = 0;
-    totalStars = 0;
-    gamesPlayed = 0;
-    highScoreDisplay.textContent = '0';
-    updateTeachingsHUD();
-    sfxClick();
-    vibrate(40);
-    setTimeout(() => location.reload(), 500);
-  });
+  // NOTE: resetLeaderboardBtn and resetAllBtn handlers REMOVED per request.
 
   // ═══════════════════════════════════════════════════════════
   //  GAME FLOW BUTTONS
@@ -2188,6 +2592,11 @@
   });
 
   function beginGame() {
+    // ← FIX #10b: hard gate again — must have completed training
+    if (!trainingCompleted) {
+      showTrainingScreen();
+      return;
+    }
     const name = startNameInput.value.trim();
     if (!name) {
       try { startNameInput.focus(); } catch(e){}
@@ -2197,6 +2606,7 @@
     }
     playerName = name.slice(0, 16);
     localStorage.setItem('mushakPlayerName', playerName);
+    getPlayerId();
 
     try { initAudio(); } catch(e){}
     sfxStart();
@@ -2329,7 +2739,7 @@
   });
 
   // ═══════════════════════════════════════════════════════════
-  //  TITLE INTRO — with intro music handling
+  //  TITLE INTRO
   // ═══════════════════════════════════════════════════════════
   let introFinished = false;
   let introTimer = null;
@@ -2369,12 +2779,11 @@
     window.addEventListener('pointerdown', skipIntroHandler);
     window.addEventListener('touchstart', skipIntroHandler, { passive: true });
     initAudio();
-    // ▶ Try to play intro music — if blocked, it queues for next user gesture
     startIntroMusic();
   }
 
   // ═══════════════════════════════════════════════════════════
-  //  STORY
+  //  STORY — FIX #3 (no cutoff, fade in, retry on tap)
   // ═══════════════════════════════════════════════════════════
   let storySceneIndex = 0;
   let storyTimer = null;
@@ -2394,25 +2803,50 @@
       d.classList.toggle('done', i < n);
     });
     storySceneIndex = n;
+
+    // Fade out and stop previous audio cleanly
     if (currentStoryAudio) {
-      try { currentStoryAudio.pause(); currentStoryAudio.currentTime = 0; } catch(e) {}
+      const old = currentStoryAudio;
+      currentStoryAudio = null;
+      try {
+        const startVol = old.volume;
+        let fade = 0;
+        const iv = setInterval(() => {
+          fade += 0.25;
+          if (fade >= 1) { clearInterval(iv); try { old.pause(); old.currentTime = 0; } catch(e){} return; }
+          try { old.volume = Math.max(0, startVol * (1 - fade)); } catch(e){}
+        }, 25);
+      } catch(e) {}
     }
+
+    // Play new scene voice
     const storySound = loadedSounds['story' + (n + 1)];
-    if (storySound && settings.sfx) {
+    if (storySound && settings.music) {
       try {
         const audio = storySound.cloneNode();
-        audio.volume = masterVolume(0.85);
+        audio.loop = false;
+        audio.volume = 0;
         const playPromise = audio.play();
-        if (playPromise) {
-          playPromise.catch(() => {
+        const fadeIn = () => {
+          let fade = 0;
+          const iv = setInterval(() => {
+            fade += 0.15;
+            if (fade >= 1) { clearInterval(iv); try { audio.volume = masterVolume(0.95); } catch(e){} return; }
+            try { audio.volume = masterVolume(0.95 * fade); } catch(e){}
+          }, 30);
+        };
+        if (playPromise && typeof playPromise.then === 'function') {
+          playPromise.then(fadeIn).catch(() => {
             const retry = () => {
-              audio.play().catch(()=>{});
+              audio.play().then(fadeIn).catch(()=>{});
               window.removeEventListener('pointerdown', retry);
               window.removeEventListener('touchstart', retry);
             };
             window.addEventListener('pointerdown', retry, { once: true });
             window.addEventListener('touchstart', retry, { once: true });
           });
+        } else {
+          fadeIn();
         }
         currentStoryAudio = audio;
       } catch(e) {}
@@ -2431,6 +2865,7 @@
     }, 500);
   }
 
+  // ← FIX #10: after story → mandatory training → home
   function finishStory() {
     if (storyFinished) return;
     storyFinished = true;
@@ -2444,7 +2879,12 @@
     setTimeout(() => {
       storyOverlay.classList.add('hidden');
       storyOverlay.style.opacity = '1';
-      showHomeScreen();
+      // Mandatory training gate
+      if (!trainingCompleted) {
+        showTrainingScreen();
+      } else {
+        showHomeScreen();
+      }
     }, 650);
   }
 

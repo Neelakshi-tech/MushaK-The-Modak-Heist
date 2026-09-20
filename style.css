@@ -1728,3 +1728,151 @@ canvas {
   .bt-label { display: none; }
   .bt-icon { font-size: 0.9rem; }
 }
+/* ═══════════════════════════════════════════════════════════
+   v4.0 ADDITIONS — Training Grounds, Hand Pointer, Safe Burst
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── TRAINING GROUNDS OVERLAY ── */
+#trainingOverlay {
+  background: radial-gradient(circle at center, rgba(26,14,46,0.98), rgba(10,6,18,0.99));
+  padding: 8px;
+  z-index: 310;
+}
+#trainingOverlay.hidden { display: none; }
+.training-hud {
+  position: relative;
+  width: 100%; max-width: 1100px;
+  height: 100%; max-height: 96dvh;
+  display: flex; flex-direction: column;
+  border-radius: 28px;
+  padding: 6px;
+  background: linear-gradient(135deg, var(--gold-bright), var(--gold-deep));
+  box-shadow: 0 0 60px rgba(255,213,107,0.4), 0 30px 60px rgba(0,0,0,0.8);
+}
+.training-top {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 18px;
+  background: rgba(10,6,18,0.85);
+  border-radius: 20px 20px 0 0;
+}
+.training-title {
+  color: var(--gold-bright);
+  font-weight: 900;
+  letter-spacing: 2px;
+  font-size: clamp(0.9rem, 2vw, 1.2rem);
+  text-shadow: 0 2px 0 var(--gold-shadow);
+}
+.training-sub {
+  color: var(--marble-warm);
+  font-size: clamp(0.7rem, 1.5vw, 0.9rem);
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+#trainingCanvas {
+  flex: 1;
+  display: block;
+  width: 100%; height: auto;
+  background: var(--marble-cream);
+  border-radius: 0;
+  touch-action: none;
+}
+.training-bottom {
+  position: relative;
+  padding: 10px 16px;
+  background: rgba(10,6,18,0.85);
+  border-radius: 0 0 20px 20px;
+  min-height: 60px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ── POINTING HAND ── */
+.tutorial-hand {
+  position: fixed;
+  font-size: 2.8rem;
+  pointer-events: none;
+  z-index: 400;
+  filter: drop-shadow(0 0 16px rgba(255,213,107,0.95)) drop-shadow(0 0 30px rgba(255,213,107,0.5));
+  transition: left 0.55s cubic-bezier(0.34, 1.56, 0.64, 1),
+              top  0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: handBob 1.2s ease-in-out infinite;
+}
+.tutorial-hand.hidden { display: none; }
+@keyframes handBob {
+  0%, 100% { transform: translate(0, 0) rotate(-8deg); }
+  50%      { transform: translate(0, -12px) rotate(0deg); }
+}
+.tutorial-hand::after {
+  content: "";
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  border: 3px solid var(--gold-bright);
+  transform: translate(-50%, -50%);
+  animation: tapRipple 1.3s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes tapRipple {
+  0%   { width: 24px; height: 24px; opacity: 1; }
+  100% { width: 100px; height: 100px; opacity: 0; }
+}
+
+/* ── TOOLTIP ── */
+.tutorial-tip {
+  padding: 10px 22px;
+  background: linear-gradient(180deg, var(--gold-bright), var(--gold-warm));
+  color: var(--ink-deep);
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  font-size: clamp(0.78rem, 1.8vw, 1.05rem);
+  border-radius: 40px;
+  box-shadow: 0 4px 0 var(--gold-shadow), 0 8px 20px rgba(0,0,0,0.5), 0 0 30px rgba(255,213,107,0.4);
+  animation: tipPulse 1.6s ease-in-out infinite;
+  text-transform: uppercase;
+  text-align: center;
+  max-width: 90%;
+}
+.tutorial-tip.hidden { display: none; }
+@keyframes tipPulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.04); }
+}
+
+/* ── POLISH: BIGGER GLOW ON CARDS / BUTTONS ── */
+.menu-btn {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.menu-btn.primary {
+  box-shadow: 0 6px 0 var(--gold-shadow), 0 12px 24px rgba(0,0,0,0.5), 0 0 40px rgba(255,213,107,0.5);
+}
+.btn {
+  box-shadow: 0 5px 0 var(--gold-shadow), 0 10px 24px rgba(0,0,0,0.5), 0 0 30px rgba(255,213,107,0.35);
+}
+.btn:hover {
+  box-shadow: 0 8px 0 var(--gold-shadow), 0 16px 30px rgba(0,0,0,0.6), 0 0 50px rgba(255,213,107,0.6);
+}
+.overlay-card {
+  box-shadow: 0 0 0 2px var(--ink-deep), 0 0 0 6px var(--gold-deep),
+              0 0 80px rgba(255,213,107,0.35),
+              0 30px 80px rgba(0,0,0,0.85);
+}
+
+/* ── SAFE ZONE BURST (visual only, triggered from JS) ── */
+.safe-zone-glow {
+  animation: safeGlow 1.4s ease-out;
+}
+@keyframes safeGlow {
+  0%   { box-shadow: 0 0 0 0 rgba(16,185,129,0.8); }
+  100% { box-shadow: 0 0 0 60px rgba(16,185,129,0); }
+}
+
+/* ── MOBILE TRAINING TWEAKS ── */
+@media (max-width: 720px) {
+  .tutorial-hand { font-size: 2.2rem; }
+  .tutorial-tip  { font-size: 0.72rem; padding: 8px 16px; letter-spacing: 1px; }
+  .training-top  { padding: 6px 12px; }
+}
+@media (max-width: 480px) {
+  .tutorial-hand { font-size: 1.9rem; }
+  .tutorial-tip  { font-size: 0.65rem; padding: 6px 12px; }
+}
