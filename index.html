@@ -100,6 +100,7 @@
       <h1>Mushak</h1>
       <div class="home-sub">Shadow of Ganesha</div>
       <div class="home-blessing">🕉️</div>
+      <div class="home-player-tag hidden" id="homePlayerTag">Playing as <b id="homePlayerName">—</b></div>
     </div>
 
     <div class="home-menu">
@@ -256,12 +257,13 @@
 
 <!-- ═══════════ PROFILE ═══════════ -->
 <div class="overlay hidden" id="profileOverlay">
-  <div class="overlay-card">
+  <div class="overlay-card profile-card">
     <h1>👤 Profile</h1>
     <h2>Your journey as Mushak</h2>
 
     <div class="profile-avatar-wrap">
       <div class="profile-avatar">🐭</div>
+      <div class="profile-level-badge" id="profileLevelBadge">Lv. 1</div>
     </div>
 
     <div class="name-input-wrap">
@@ -292,6 +294,11 @@
       </div>
     </div>
 
+    <div class="profile-badges-section">
+      <div class="panel-heading">🎖️ Achievements</div>
+      <div class="badge-grid" id="badgeGrid"></div>
+    </div>
+
     <div class="flex-row">
       <button class="btn" id="saveProfileBtn">💾 Save</button>
       <button class="btn btn-secondary btn-small" id="closeProfileBtn">← Back</button>
@@ -303,7 +310,11 @@
 <div class="overlay hidden" id="leaderboardOverlay">
   <div class="overlay-card">
     <h1>🏆 Leaderboard</h1>
-    <h2>Top Mushak thieves</h2>
+    <h2>Top Mushak thieves from all players</h2>
+    <div class="leaderboard-tabs">
+      <button class="lb-tab active" id="lbTabAll">🌍 All Time</button>
+      <button class="lb-tab" id="lbTabRecent">🕐 Recent</button>
+    </div>
     <div class="leaderboard-list" id="homeLeaderboardList"></div>
     <div class="flex-row">
       <button class="btn" id="closeLeaderboardBtn">← Back</button>
@@ -600,6 +611,16 @@
     <div class="flex-row">
       <button class="btn" id="nextLevelBtn">➡ Next Level</button>
     </div>
+  </div>
+</div>
+
+<!-- ═══════════ INTER-LEVEL MODAK RAIN ═══════════ -->
+<div class="overlay hidden" id="modakRainOverlay">
+  <div class="modak-rain-stage">
+    <canvas id="modakRainCanvas" width="800" height="500"></canvas>
+    <div class="modak-rain-title" id="modakRainTitle">✨ BONUS ROUND ✨</div>
+    <div class="modak-rain-sub" id="modakRainSub">Catch the falling modaks!</div>
+    <div class="modak-rain-tap" id="modakRainTap">👆 Tap modaks to collect bonus points!</div>
   </div>
 </div>
 
